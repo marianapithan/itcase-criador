@@ -184,7 +184,7 @@ export default async function Dashboard() {
                 <p className="text-xs text-gray-500 mb-2">
                   {progMes >= 100
                     ? "Meta do mês atingida! 🎉 Hora de comemorar!"
-                    : `${META_MES - publicadosMes} publicação${META_MES - publicadosMes !== 1 ? "ões" : ""} para a meta`}
+                    : `${META_MES - publicadosMes} publicaç${META_MES - publicadosMes !== 1 ? "ões" : "ão"} para a meta`}
                 </p>
                 <p className="text-[11px] text-gray-400 italic">{fraseMot}</p>
               </>
