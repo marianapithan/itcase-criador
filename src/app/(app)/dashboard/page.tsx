@@ -3,7 +3,7 @@ import { Lightbulb, BookOpen, CalendarDays, TrendingUp, AlertCircle, CheckCircle
 import Link from "next/link";
 import { STATUS_CONFIG, FORMATOS_CONFIG } from "@/lib/constants";
 import { CONFIG } from "@/lib/config";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const { publicados: META_PUBLICADOS_90D } = CONFIG.metas;
@@ -113,7 +113,7 @@ export default async function Dashboard() {
               {proximosConteudos.map((c) => {
                 const s = STATUS_CONFIG[c.status] ?? { label: c.status, cor: "bg-gray-100 text-gray-600", dot: "#9ca3af" };
                 const fmt = FORMATOS_CONFIG[c.formato];
-                const data = c.dataplanejada ? parseISO(c.dataplanejada as unknown as string) : null;
+                const data = c.dataplanejada ? new Date(c.dataplanejada as unknown as string) : null;
                 const isHoje = data && format(data, "yyyy-MM-dd") === format(hoje, "yyyy-MM-dd");
                 const isAmanha = data && format(data, "yyyy-MM-dd") === format(new Date(hoje.getTime() + 86400000), "yyyy-MM-dd");
                 const dataLabel = isHoje ? "Hoje" : isAmanha ? "Amanhã" : data ? format(data, "d MMM", { locale: ptBR }) : "";
