@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/Sidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { AlertaHoje } from "@/components/AlertaHoje";
+import { FloatingActionButton } from "@/components/FloatingActionButton";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,6 +18,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <BottomNav />
       </div>
       <AlertaHoje />
+      <FloatingActionButton />
     </div>
   );
 }

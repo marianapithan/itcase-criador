@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
-import { Sparkles, FileText, Plus, ChevronRight, X, Check, Clock, Trash2, CalendarPlus, ChevronDown, ChevronUp, Pencil } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Sparkles, FileText, Plus, ChevronRight, X, Check, Clock, Trash2, CalendarPlus, ChevronDown, ChevronUp, Pencil, Copy, Hash, Eye, EyeOff, Copy as CopyIcon } from "lucide-react";
 import { STATUS_CONFIG, STATUS_LIST_EDITORIAL, FORMATOS_CONFIG, RESPONSAVEIS, getResponsavelConfig } from "@/lib/constants";
 
 type Conteudo = {
@@ -54,6 +55,8 @@ type Filtro = "todos" | "banco" | "revisar" | "aprovados" | "descartados";
 type TelaAcao = null | "aprovar" | "descartar";
 
 export default function RoteirosPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [conteudos, setConteudos] = useState<Conteudo[]>([]);
   const [temas, setTemas] = useState<Tema[]>([]);
   const [selecionado, setSelecionado] = useState<Conteudo | null>(null);
@@ -76,20 +79,36 @@ export default function RoteirosPage() {
   const [gerandoLote, setGerandoLote] = useState(false);
   const [frameworkIdeia, setFrameworkIdeia] = useState("");
   const [gerandoRoteiroIdeia, setGerandoRoteiroIdeia] = useState(false);
+  const [copiadoRoteiro, setCopiadoRoteiro] = useState(false);
+  const [copiadoLegenda, setCopiadoLegenda] = useState(false);
+  const [hashtags, setHashtags] = useState("");
+  const [gerandoHashtags, setGerandoHashtags] = useState(false);
+  const [copiadoHashtags, setCopiadoHashtags] = useState(false);
+  const [mostrarPreview, setMostrarPreview] = useState(false);
+  const [duplicando, setDuplicando] = useState(false);
 
   const frameworkSelecionado = FRAMEWORKS.find((f) => f.id === form.framework);
   const podeGerar = form.titulo.trim() && form.framework;
 
-  async function carregar() {
+  const carregar = useCallback(async () => {
     const [c, t] = await Promise.all([
       fetch("/api/conteudos").then((r) => r.json()),
       fetch("/api/temas").then((r) => r.json()),
     ]);
     setConteudos(c);
     setTemas(t);
-  }
+  }, []);
 
-  useEffect(() => { carregar(); }, []);
+  useEffect(() => { carregar(); }, [carregar]);
+
+  // Abrir formulário novo via ?novo=1 (ex: FAB)
+  useEffect(() => {
+    if (searchParams.get("novo") === "1") {
+      setCriandoNovo(true);
+      setSelecionado(null);
+      router.replace("/roteiros");
+    }
+  }, [searchParams, router]);
 
   const conteudosFiltrados = conteudos.filter((c) => {
     if (filtro === "banco") return c.status === "IDEIA";
@@ -255,6 +274,40 @@ export default function RoteirosPage() {
     setConteudos((prev) => prev.map((c) => c.id === selecionado.id ? { ...c, status } : c));
   }
 
+  function copiar(texto: string, tipo: "roteiro" | "legenda" | "hashtags") {
+    navigator.clipboard.writeText(texto);
+    if (tipo === "roteiro") { setCopiadoRoteiro(true); setTimeout(() => setCopiadoRoteiro(false), 2000); }
+    if (tipo === "legenda") { setCopiadoLegenda(true); setTimeout(() => setCopiadoLegenda(false), 2000); }
+    if (tipo === "hashtags") { setCopiadoHashtags(true); setTimeout(() => setCopiadoHashtags(false), 2000); }
+  }
+
+  async function gerarHashtags() {
+    if (!selecionado) return;
+    setGerandoHashtags(true);
+    try {
+      const res = await fetch(`/api/roteiros/${selecionado.id}/hashtags`, { method: "POST" });
+      const data = await res.json();
+      if (data.erro) { alert(data.erro); return; }
+      setHashtags(data.hashtags);
+    } finally {
+      setGerandoHashtags(false);
+    }
+  }
+
+  async function duplicar() {
+    if (!selecionado) return;
+    setDuplicando(true);
+    try {
+      const res = await fetch(`/api/conteudos/${selecionado.id}/duplicar`, { method: "POST" });
+      const data = await res.json();
+      await carregar();
+      setSelecionado(data);
+      setCriandoNovo(false);
+    } finally {
+      setDuplicando(false);
+    }
+  }
+
   function badgeStatus(status: string) {
     const cfg = STATUS_CONFIG[status];
     const label = cfg?.label ?? status;
@@ -327,7 +380,7 @@ export default function RoteirosPage() {
             return (
               <button
                 key={c.id}
-                onClick={() => { setSelecionado(c); setCriandoNovo(false); setTelaAcao(null); setEditandoRoteiro(false); setEditandoLegenda(false); }}
+                onClick={() => { setSelecionado(c); setCriandoNovo(false); setTelaAcao(null); setEditandoRoteiro(false); setEditandoLegenda(false); setHashtags(""); setMostrarPreview(false); }}
                 className={`w-full text-left p-3 rounded-lg text-xs transition-colors ${selecionado?.id === c.id && !criandoNovo ? "bg-gray-900 text-white" : "hover:bg-gray-50 text-gray-700"}`}
               >
                 <div className="font-medium truncate">{c.titulo}</div>
@@ -509,6 +562,10 @@ export default function RoteirosPage() {
                 <h2 className="text-xl font-semibold text-gray-900 leading-snug">{selecionado.titulo}</h2>
                 {selecionado.objetivo && <p className="text-sm text-gray-500 mt-1">{selecionado.objetivo}</p>}
               </div>
+              <button onClick={duplicar} disabled={duplicando} title="Duplicar conteúdo"
+                className="ml-3 shrink-0 p-2 rounded-lg border border-gray-200 text-gray-400 hover:text-gray-700 hover:border-gray-300 transition-colors disabled:opacity-40">
+                <CopyIcon size={14} />
+              </button>
             </div>
 
             {/* Gerar roteiro para IDEIA sem roteiro */}
@@ -621,10 +678,18 @@ export default function RoteirosPage() {
             {/* Roteiro */}
             {selecionado.roteiro && (
               <div className="mb-4">
-                <button onClick={() => setMostrarRoteiro((v) => !v)} className="w-full flex items-center justify-between text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2 hover:text-gray-900">
-                  <span>Roteiro</span>
-                  {mostrarRoteiro ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                </button>
+                <div className="flex items-center justify-between mb-2">
+                  <button onClick={() => setMostrarRoteiro((v) => !v)} className="flex items-center gap-2 text-xs font-semibold text-gray-700 uppercase tracking-wide hover:text-gray-900">
+                    <span>Roteiro</span>
+                    {mostrarRoteiro ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </button>
+                  {mostrarRoteiro && selecionado.roteiro && !editandoRoteiro && (
+                    <button onClick={() => copiar(selecionado.roteiro!, "roteiro")}
+                      className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-700 transition-colors px-2 py-1 rounded-lg hover:bg-gray-100">
+                      {copiadoRoteiro ? <><Check size={11} className="text-green-500" /> Copiado!</> : <><Copy size={11} /> Copiar</>}
+                    </button>
+                  )}
+                </div>
                 {mostrarRoteiro && (
                   editandoRoteiro ? (
                     <div>
@@ -652,10 +717,24 @@ export default function RoteirosPage() {
             {/* Legenda */}
             {(selecionado.legenda || mostrarLegenda) && (
               <div className="mb-4">
-                <button onClick={() => setMostrarLegenda((v) => !v)} className="w-full flex items-center justify-between text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2 hover:text-gray-900">
-                  <span>Legenda</span>
-                  {mostrarLegenda ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                </button>
+                <div className="flex items-center justify-between mb-2">
+                  <button onClick={() => setMostrarLegenda((v) => !v)} className="flex items-center gap-2 text-xs font-semibold text-gray-700 uppercase tracking-wide hover:text-gray-900">
+                    <span>Legenda</span>
+                    {mostrarLegenda ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </button>
+                  {mostrarLegenda && selecionado.legenda && !editandoLegenda && (
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setMostrarPreview((v) => !v)}
+                        className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-700 transition-colors px-2 py-1 rounded-lg hover:bg-gray-100">
+                        {mostrarPreview ? <><EyeOff size={11} /> Preview</> : <><Eye size={11} /> Preview</>}
+                      </button>
+                      <button onClick={() => copiar(selecionado.legenda!, "legenda")}
+                        className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-700 transition-colors px-2 py-1 rounded-lg hover:bg-gray-100">
+                        {copiadoLegenda ? <><Check size={11} className="text-green-500" /> Copiado!</> : <><Copy size={11} /> Copiar</>}
+                      </button>
+                    </div>
+                  )}
+                </div>
                 {mostrarLegenda && (
                   editandoLegenda ? (
                     <div>
@@ -687,6 +766,52 @@ export default function RoteirosPage() {
               <button onClick={() => setMostrarLegenda(true)} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 mb-4">
                 <ChevronDown size={12} /> Mostrar legenda
               </button>
+            )}
+
+            {/* Preview estilo Instagram */}
+            {mostrarPreview && selecionado.legenda && (
+              <div className="mb-4 border border-gray-100 rounded-xl overflow-hidden">
+                <div className="bg-gray-50 px-3 py-2 text-[11px] font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-100">Preview — estilo Instagram</div>
+                <div className="p-4 bg-white">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center text-white text-xs font-bold">IC</div>
+                    <div>
+                      <div className="text-xs font-semibold text-gray-900">itcase_londrina</div>
+                      <div className="text-[10px] text-gray-400">Londrina, PR</div>
+                    </div>
+                  </div>
+                  <div className="w-full aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg mb-3 flex items-center justify-center">
+                    <span className="text-gray-400 text-xs">{FORMATOS_CONFIG[selecionado.formato]?.label ?? selecionado.formato}</span>
+                  </div>
+                  <div className="text-xs text-gray-800 leading-relaxed whitespace-pre-wrap">
+                    <span className="font-semibold">itcase_londrina</span>{" "}
+                    {selecionado.legenda}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Hashtags */}
+            {selecionado.roteiro && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Hashtags</span>
+                  <button onClick={gerarHashtags} disabled={gerandoHashtags}
+                    className="flex items-center gap-1 text-[11px] text-purple-600 hover:text-purple-800 transition-colors px-2 py-1 rounded-lg hover:bg-purple-50 disabled:opacity-40">
+                    <Hash size={11} />
+                    {gerandoHashtags ? "Gerando…" : hashtags ? "Gerar novamente" : "Gerar hashtags"}
+                  </button>
+                </div>
+                {hashtags && (
+                  <div className="relative bg-purple-50 rounded-xl p-4 border border-purple-100">
+                    <p className="text-xs text-purple-800 leading-relaxed">{hashtags}</p>
+                    <button onClick={() => copiar(hashtags, "hashtags")}
+                      className="absolute top-3 right-3 flex items-center gap-1 text-[11px] text-purple-400 hover:text-purple-700 transition-colors px-2 py-1 rounded-lg hover:bg-purple-100">
+                      {copiadoHashtags ? <><Check size={10} className="text-green-500" /> Copiado!</> : <><Copy size={10} /> Copiar</>}
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Versão anterior */}
