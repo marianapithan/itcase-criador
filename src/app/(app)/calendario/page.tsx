@@ -686,9 +686,14 @@ export default function CalendarioPage() {
                           style={{ top: (h - GRID_START) * HOUR_HEIGHT, height: HOUR_HEIGHT }}
                           onClick={() => {
                             if (drag) return;
-                            setSelecionado(null);
-                            setNovoSlot({ dia, hora: h });
-                            setNovoForm((p) => ({ ...p, hora: h, minuto: 0 }));
+                            if (view === "semana") {
+                              setRefDate(dia);
+                              setView("hoje");
+                            } else {
+                              setSelecionado(null);
+                              setNovoSlot({ dia, hora: h });
+                              setNovoForm((p) => ({ ...p, hora: h, minuto: 0 }));
+                            }
                           }}>
                           <div className="absolute top-0.5 right-1 text-[9px] text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity select-none flex items-center gap-0.5">
                             <Plus size={8} />{String(h).padStart(2, "0")}:00
