@@ -50,7 +50,7 @@ const CATEGORIA_COR: Record<string, string> = {
   "Narrativos": "text-purple-600",
 };
 
-type Filtro = "todos" | "revisar" | "aprovados" | "descartados";
+type Filtro = "todos" | "banco" | "revisar" | "aprovados" | "descartados";
 type TelaAcao = null | "aprovar" | "descartar";
 
 export default function RoteirosPage() {
@@ -92,6 +92,7 @@ export default function RoteirosPage() {
   useEffect(() => { carregar(); }, []);
 
   const conteudosFiltrados = conteudos.filter((c) => {
+    if (filtro === "banco") return c.status === "IDEIA";
     if (filtro === "revisar") return c.status === "REVISAR_MAIS_TARDE";
     if (filtro === "aprovados") return ["APROVADO", "AGENDADO", "EM_PRODUCAO", "PRONTO_PUBLICAR", "PUBLICADO"].includes(c.status);
     if (filtro === "descartados") return c.status === "DESCARTADO";
@@ -288,7 +289,13 @@ export default function RoteirosPage() {
 
           {/* Filtros */}
           <div className="flex flex-col gap-0.5">
-            {([["todos", "Todos"], ["revisar", "Revisar depois"], ["aprovados", "Aprovados"], ["descartados", "Descartados"]] as [Filtro, string][]).map(([f, label]) => (
+            {([
+              ["todos", "Todos"],
+              ["banco", "Banco de Ideias"],
+              ["revisar", "Revisar depois"],
+              ["aprovados", "Aprovados"],
+              ["descartados", "Descartados"],
+            ] as [Filtro, string][]).map(([f, label]) => (
               <button
                 key={f}
                 onClick={() => setFiltro(f)}
@@ -297,6 +304,7 @@ export default function RoteirosPage() {
                 {label}
                 <span className="ml-1 opacity-60 text-[10px]">
                   {f === "todos" ? conteudos.length :
+                   f === "banco" ? conteudos.filter((c) => c.status === "IDEIA").length :
                    f === "revisar" ? conteudos.filter((c) => c.status === "REVISAR_MAIS_TARDE").length :
                    f === "aprovados" ? conteudos.filter((c) => ["APROVADO","AGENDADO","EM_PRODUCAO","PRONTO_PUBLICAR","PUBLICADO"].includes(c.status)).length :
                    conteudos.filter((c) => c.status === "DESCARTADO").length}

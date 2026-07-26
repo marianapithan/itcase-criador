@@ -3,8 +3,21 @@ import { Lightbulb, BookOpen, CalendarDays, TrendingUp, AlertCircle, CheckCircle
 import Link from "next/link";
 import { STATUS_CONFIG, FORMATOS_CONFIG } from "@/lib/constants";
 import { CONFIG } from "@/lib/config";
-import { format } from "date-fns";
+import { format, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+const FRASES_MOT = [
+  "Seu conteúdo de hoje pode ser sua venda de amanhã. 🚀",
+  "Consistência bate talento quando talento não é consistente. 💪",
+  "O algoritmo ama quem aparece. Apareça! 📲",
+  "Não desista de criar — desista de perfeição. 🎯",
+  "Uma legenda por dia mantece o cliente por perto. ✍️",
+  "Hoje você posta, amanhã você vende, depois você descansa (talvez). 😄",
+  "Cada post é uma sementinha. Não para de regar! 🌱",
+  "Feito é melhor que perfeito — pergunta pra qualquer iPhone seminovo. 😂",
+  "Você não cria conteúdo por acaso. Você cria por estratégia. 🎬",
+  "Quem conta sua história não precisa que o concorrente conte a dele. 🏆",
+];
 
 const { publicados: META_PUBLICADOS_90D } = CONFIG.metas;
 const META_MES = Math.ceil(META_PUBLICADOS_90D / 3);
@@ -60,6 +73,8 @@ export default async function Dashboard() {
   const progMes = META_MES > 0 ? Math.min(100, (publicadosMes / META_MES) * 100) : 0;
   const nomeMes = format(hoje, "MMMM", { locale: ptBR });
   const nomeMesCapitalizado = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
+  const fraseIdx = hoje.getDate() % FRASES_MOT.length;
+  const fraseMot = FRASES_MOT[fraseIdx];
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
@@ -114,12 +129,12 @@ export default async function Dashboard() {
                 const s = STATUS_CONFIG[c.status] ?? { label: c.status, cor: "bg-gray-100 text-gray-600", dot: "#9ca3af" };
                 const fmt = FORMATOS_CONFIG[c.formato];
                 const data = c.dataplanejada ? new Date(c.dataplanejada as unknown as string) : null;
-                const isHoje = data && format(data, "yyyy-MM-dd") === format(hoje, "yyyy-MM-dd");
-                const isAmanha = data && format(data, "yyyy-MM-dd") === format(new Date(hoje.getTime() + 86400000), "yyyy-MM-dd");
-                const dataLabel = isHoje ? "Hoje" : isAmanha ? "Amanhã" : data ? format(data, "d MMM", { locale: ptBR }) : "";
+                const diffDias = data ? differenceInCalendarDays(data, hoje) : 99;
+                const dataLabel = diffDias === 0 ? "Hoje" : diffDias === 1 ? "Amanhã" : data ? format(data, "d MMM", { locale: ptBR }) : "";
+                const urgenciaCor = diffDias <= 1 ? "text-red-500" : diffDias <= 5 ? "text-amber-500" : "text-green-600";
                 return (
-                  <div key={c.id} className="flex items-center gap-3 px-4 py-2.5">
-                    <div className={`text-[10px] font-bold min-w-[40px] ${isHoje ? "text-orange-500" : isAmanha ? "text-amber-500" : "text-gray-400"}`}>
+                  <Link key={c.id} href="/calendario" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors">
+                    <div className={`text-[10px] font-bold min-w-[44px] ${urgenciaCor}`}>
                       {dataLabel}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -127,7 +142,7 @@ export default async function Dashboard() {
                       {fmt && <div className="text-[10px] text-gray-400">{fmt.label}</div>}
                     </div>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${s.cor}`}>{s.label}</span>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
@@ -144,15 +159,20 @@ export default async function Dashboard() {
             <Link href="/biblioteca" className="text-[11px] text-gray-400 hover:text-gray-700 transition-colors">Ver biblioteca →</Link>
           </div>
           <div className="p-5">
-            <div className="flex items-end gap-2 mb-4">
+            <div className="flex items-end gap-2 mb-3">
               <span className="text-4xl font-bold text-gray-900">{publicadosMes}</span>
               {META_MES > 0 && (
                 <span className="text-sm text-gray-400 mb-1">/ {META_MES} meta</span>
               )}
+              {META_MES > 0 && (
+                <span className="text-sm font-semibold mb-1 ml-auto" style={{ color: progMes >= 100 ? "#16a34a" : progMes >= 60 ? "#2563eb" : "#f59e0b" }}>
+                  {Math.round(progMes)}%
+                </span>
+              )}
             </div>
             {META_MES > 0 && (
               <>
-                <div className="w-full bg-gray-100 rounded-full h-2 mb-2">
+                <div className="w-full bg-gray-100 rounded-full h-2 mb-3">
                   <div
                     className="h-2 rounded-full transition-all"
                     style={{
@@ -161,11 +181,12 @@ export default async function Dashboard() {
                     }}
                   />
                 </div>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-500 mb-2">
                   {progMes >= 100
-                    ? "Meta do mês atingida! 🎉"
+                    ? "Meta do mês atingida! 🎉 Hora de comemorar!"
                     : `${META_MES - publicadosMes} publicação${META_MES - publicadosMes !== 1 ? "ões" : ""} para a meta`}
                 </p>
+                <p className="text-[11px] text-gray-400 italic">{fraseMot}</p>
               </>
             )}
             {META_MES === 0 && (

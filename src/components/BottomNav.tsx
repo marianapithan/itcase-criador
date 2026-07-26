@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Lightbulb, BookOpen,
   CalendarDays, Library, Radar, MoreHorizontal,
-  Settings, Sparkles, LogOut,
+  Settings, Sparkles, LogOut, User,
 } from "lucide-react";
 import { useState } from "react";
 import { CONFIG } from "@/lib/config";
@@ -54,6 +54,11 @@ export function BottomNav() {
               className="flex items-center gap-3 px-2 py-3 rounded-xl hover:bg-gray-50 transition-colors">
               <Lightbulb size={18} className="text-gray-500" />
               <span className="text-sm text-gray-700">Temas & Microtemas</span>
+            </Link>
+            <Link href="/persona" onClick={() => setMenuAberto(false)}
+              className="flex items-center gap-3 px-2 py-3 rounded-xl hover:bg-gray-50 transition-colors">
+              <User size={18} className="text-purple-500" />
+              <span className="text-sm text-gray-700">Estudo de Persona</span>
             </Link>
             <Link href="/configuracoes" onClick={() => setMenuAberto(false)}
               className="flex items-center gap-3 px-2 py-3 rounded-xl hover:bg-gray-50 transition-colors">

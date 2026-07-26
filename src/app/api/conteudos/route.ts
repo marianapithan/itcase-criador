@@ -5,6 +5,22 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const comData = searchParams.get("comData") === "true";
   const incluirTema = searchParams.get("incluirTema") === "true";
+  const pendentesHoje = searchParams.get("pendentesHoje") === "true";
+
+  if (pendentesHoje) {
+    const hoje = new Date();
+    const inicioDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 0, 0, 0, 0);
+    const fimDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 23, 59, 59, 999);
+    const pendentes = await prisma.conteudo.findMany({
+      where: {
+        dataplanejada: { gte: inicioDia, lte: fimDia },
+        status: { notIn: ["PUBLICADO", "DESCARTADO"] },
+        concluido: false,
+      },
+      orderBy: { dataplanejada: "asc" },
+    });
+    return NextResponse.json(pendentes);
+  }
 
   const where = comData ? { dataplanejada: { not: null } } : {};
 

@@ -12,6 +12,7 @@ import {
   Sparkles,
   Radar,
   LogOut,
+  User,
 } from "lucide-react";
 import { CONFIG } from "@/lib/config";
 
@@ -22,6 +23,7 @@ const nav = [
   { href: "/calendario",  label: "Calendário",          icon: CalendarDays },
   { href: "/biblioteca",  label: "Biblioteca",          icon: Library },
   { href: "/tendencias",  label: "Radar IA",            icon: Radar },
+  { href: "/persona",     label: "Estudo de Persona",   icon: User },
 ];
 
 function getCookie(name: string): string {
