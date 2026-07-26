@@ -121,6 +121,22 @@ model ConfigIA {
   criadoEm        DateTime  @default(now())
 }
 
+model PersonaConfig {
+  id               String   @id @default("default")
+  nomePersona      String   @default("Ana Conquista")
+  faixaEtaria      String   @default("25 a 40 anos")
+  localizacao      String   @default("Londrina e região")
+  perfilCompra     String   @default("Consultivo, não impulsivo")
+  desejos          String   @default("[]")
+  medos            String   @default("[]")
+  palavrasMarca    String   @default("[]")
+  palavrasProibidas String  @default("[]")
+  diferenciais     String   @default("[]")
+  comoComunicar    String   @default("[]")
+  sugestoesIA      String?
+  atualizadoEm     DateTime @updatedAt
+}
+
 model LogIA {
   id             String   @id @default(cuid())
   requestId      String   @unique @default(cuid())
