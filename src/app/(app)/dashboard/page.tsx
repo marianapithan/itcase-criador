@@ -29,7 +29,7 @@ export default async function Dashboard() {
   const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0, 23, 59, 59);
   const em7dias = new Date(hoje.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-  const [totalTemas, totalConteudos, agendados, aprovados, proximosNaoGravados, publicadosMes, proximosConteudos] = await Promise.all([
+  const [totalTemas, totalConteudos, agendados, aprovados, proximosNaoGravados, publicadosMes, proximosConteudos, publicadosPorDia] = await Promise.all([
     prisma.tema.count(),
     prisma.conteudo.count(),
     prisma.conteudo.count({ where: { status: "AGENDADO" } }),
@@ -55,6 +55,10 @@ export default async function Dashboard() {
       orderBy: { dataplanejada: "asc" },
       take: 6,
     }),
+    prisma.conteudo.findMany({
+      where: { status: "PUBLICADO", dataplanejada: { gte: inicioMes, lte: fimMes } },
+      select: { dataplanejada: true },
+    }),
   ]);
 
   const recentes = await prisma.conteudo.findMany({
@@ -75,6 +79,23 @@ export default async function Dashboard() {
   const nomeMesCapitalizado = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
   const fraseIdx = hoje.getDate() % FRASES_MOT.length;
   const fraseMot = FRASES_MOT[fraseIdx];
+
+  // Sparkline: publicações acumuladas por dia no mês
+  const diasNoMes = fimMes.getDate();
+  const contagemPorDia = Array(diasNoMes).fill(0);
+  for (const p of publicadosPorDia) {
+    if (!p.dataplanejada) continue;
+    const d = new Date(p.dataplanejada as unknown as string).getDate() - 1;
+    if (d >= 0 && d < diasNoMes) contagemPorDia[d]++;
+  }
+  const acumulado = contagemPorDia.reduce<number[]>((acc, v) => { acc.push((acc[acc.length - 1] ?? 0) + v); return acc; }, []);
+  const maxAcum = Math.max(...acumulado, 1);
+  const svgW = 200, svgH = 40;
+  const sparkPoints = acumulado.map((v, i) => {
+    const x = (i / (diasNoMes - 1)) * svgW;
+    const y = svgH - (v / maxAcum) * svgH;
+    return `${x},${y}`;
+  }).join(" ");
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
@@ -172,6 +193,20 @@ export default async function Dashboard() {
             </div>
             {META_MES > 0 && (
               <>
+                {acumulado.some((v) => v > 0) && (
+                  <div className="mb-3">
+                    <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-10" preserveAspectRatio="none">
+                      <polyline
+                        points={sparkPoints}
+                        fill="none"
+                        stroke={progMes >= 100 ? "#16a34a" : progMes >= 60 ? "#2563eb" : "#f59e0b"}
+                        strokeWidth="2"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </div>
+                )}
                 <div className="w-full bg-gray-100 rounded-full h-2 mb-3">
                   <div
                     className="h-2 rounded-full transition-all"

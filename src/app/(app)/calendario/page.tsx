@@ -100,6 +100,7 @@ export default function CalendarioPage() {
   const [legendaTemp, setLegendaTemp] = useState("");
   const [novaCampanha, setNovaCampanha] = useState(false);
   const [campForm, setCampForm] = useState({ nome: "", dataInicio: "", dataFim: "", objetivo: "" });
+  const [filtroFormato, setFiltroFormato] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -283,7 +284,11 @@ export default function CalendarioPage() {
   }
 
   function eventosNaDia(dia: Date) {
-    return conteudos.filter((c) => c.dataplanejada && isSameDay(parseISO(c.dataplanejada), dia));
+    return conteudos.filter((c) => {
+      if (!c.dataplanejada || !isSameDay(parseISO(c.dataplanejada), dia)) return false;
+      if (filtroFormato && c.formato !== filtroFormato) return false;
+      return true;
+    });
   }
 
   function campanhasDoPeriodo(inicio: Date, fim: Date) {
@@ -489,16 +494,22 @@ export default function CalendarioPage() {
               ))}
             </div>
 
-            {view !== "mes" && (
-              <div className="hidden md:flex items-center gap-2">
-                {Object.entries(FORMATOS_CONFIG).map(([k, cfg]) => (
-                  <div key={k} className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cfg.dot }} />
-                    <span className="text-xs text-gray-500">{cfg.label}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="hidden md:flex items-center gap-1">
+              {Object.entries(FORMATOS_CONFIG).map(([k, cfg]) => {
+                const ativo = filtroFormato === k;
+                return (
+                  <button key={k} onClick={() => setFiltroFormato(ativo ? null : k)}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-all ${ativo ? "font-semibold" : "text-gray-500 hover:bg-gray-100 opacity-60 hover:opacity-100"}`}
+                    style={ativo ? { backgroundColor: cfg.bg, color: cfg.text, border: `1px solid ${cfg.border}` } : {}}>
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: cfg.dot }} />
+                    {cfg.label}
+                  </button>
+                );
+              })}
+              {filtroFormato && (
+                <button onClick={() => setFiltroFormato(null)} className="text-[11px] text-gray-400 hover:text-gray-600 px-1">✕</button>
+              )}
+            </div>
 
             <button onClick={() => setNovaCampanha(true)} className="hidden md:flex items-center gap-1 text-xs text-orange-600 border border-orange-200 px-2.5 py-1 rounded-lg hover:bg-orange-50">
               <Signal size={11} /> Campanha
