@@ -572,9 +572,9 @@ export default function CalendarioPage() {
                       className={`text-xs font-semibold mb-1 w-6 h-6 flex items-center justify-center rounded-full mx-auto transition-colors ${hoje ? "bg-gray-900 text-white" : doMes ? "text-gray-700 hover:bg-gray-100" : "text-gray-400 hover:bg-gray-100"}`}>
                       {format(dia, "d")}
                     </button>
-                    {/* Add button */}
-                    <button className="w-full text-[10px] text-gray-300 hover:text-gray-600 hover:bg-gray-50 rounded py-0.5 transition-colors flex items-center justify-center gap-0.5 mb-1 opacity-0 hover:opacity-100 group"
-                      onClick={() => { setSelecionado(null); setNovoSlot({ dia, hora: 12 }); setNovoForm((p) => ({ ...p, hora: 12, minuto: 0 })); }}>
+                    {/* Add button — navega pro dia no mobile; só visível no hover em desktop */}
+                    <button className="w-full text-[10px] text-gray-300 hover:text-gray-600 hover:bg-gray-50 rounded py-0.5 transition-colors flex items-center justify-center gap-0.5 mb-1 opacity-0 hover:opacity-100"
+                      onClick={() => { setRefDate(dia); setView("hoje"); }}>
                       <Plus size={10} />
                     </button>
                     {/* Events */}
