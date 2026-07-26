@@ -1,0 +1,574 @@
+"use client";
+import { useEffect, useState } from "react";
+import { Sparkles, FileText, Plus, ChevronRight, X, Check, Clock, Trash2, CalendarPlus, ChevronDown, ChevronUp, Pencil } from "lucide-react";
+import { STATUS_CONFIG, STATUS_LIST_EDITORIAL, FORMATOS_CONFIG, RESPONSAVEIS, getResponsavelConfig } from "@/lib/constants";
+
+type Conteudo = {
+  id: string;
+  titulo: string;
+  formato: string;
+  status: string;
+  roteiro?: string;
+  legenda?: string;
+  roteiroAnterior?: string;
+  legendaAnterior?: string;
+  objetivo?: string;
+  etapaFunil?: string;
+  responsavel?: string;
+  criadoEm: string;
+};
+type Tema = { id: string; titulo: string };
+
+const FORMATOS = Object.entries(FORMATOS_CONFIG).map(([value, cfg]) => ({ value, label: cfg.label }));
+
+const STATUS_LIST = [...STATUS_LIST_EDITORIAL, "GERADO_IA", "ROTEIRO_PRONTO", "REVISAR_MAIS_TARDE", "DESCARTADO"] as string[];
+
+const ETAPAS = [
+  { value: "TOPO",  label: "Topo",  desc: "Alcance" },
+  { value: "MEIO",  label: "Meio",  desc: "Engajamento" },
+  { value: "FUNDO", label: "Fundo", desc: "Conversão" },
+];
+
+type Framework = { id: string; emoji: string; nome: string; categoria: string; descricao: string; prompt: string };
+
+const FRAMEWORKS: Framework[] = [
+  { id: "aida", emoji: "🎯", nome: "AIDA", categoria: "Frameworks", descricao: "Atenção → Interesse → Desejo → Ação. 3 ganchos, depois cada seção completa.", prompt: "Use o framework AIDA (Atenção → Interesse → Desejo → Ação). Comece com 3 opções de gancho (Atenção). Depois desenvolva cada seção completa: I (Interesse), D (Desejo), A (Ação/CTA). Ao final, entregue uma versão compacta do roteiro inteiro." },
+  { id: "pas", emoji: "⚡", nome: "PAS", categoria: "Frameworks", descricao: "Problema → Agitação → Solução. 3 ganchos, depois P, A, S completos + CTA.", prompt: "Use o framework PAS (Problema → Agitação → Solução). Comece com 3 opções de gancho. Depois escreva P completo (descreva o problema em detalhes), A completo (agite a dor, torne-a urgente e real), S completo (apresente a solução com CTA). Ao final, entregue uma versão compacta." },
+  { id: "bab", emoji: "🔄", nome: "BAB", categoria: "Frameworks", descricao: "Before → After → Bridge. Antes detalhado, depois ideal, ponte com CTA.", prompt: "Use o framework BAB (Before → After → Bridge). Before: descreva a situação atual com detalhes sensoriais e emocionais. After: pinte o cenário ideal de forma vívida. Bridge: mostre como a It Case é a ponte entre os dois estados, com CTA claro. Ao final, inclua uma versão curta em formato depoimento de cliente." },
+  { id: "pastor", emoji: "🌿", nome: "PASTOR", categoria: "Frameworks", descricao: "Problema, Amplificação, Solução/História, Transformação, Oferta, Resposta (CTA).", prompt: "Use o framework PASTOR: P (Problema), A (Amplificação), S (Solução/História), T (Transformação), O (Oferta), R (Resposta/CTA). Desenvolva cada bloco." },
+  { id: "quest", emoji: "🔑", nome: "QUEST", categoria: "Frameworks", descricao: "Qualify, Understand, Educate, Stimulate, Transition. Qualifique, eduque e converta.", prompt: "Use o framework QUEST: Q (Qualify), U (Understand), E (Educate), S (Stimulate), T (Transition). Desenvolva cada etapa." },
+  { id: "4ps", emoji: "🧩", nome: "4 Ps", categoria: "Frameworks", descricao: "Picture, Promise, Prove, Push. Imagem mental, promessa, prova e empurrão final.", prompt: "Use os 4 Ps: P (Picture — crie uma imagem mental vívida), P (Promise — faça uma promessa clara), P (Prove — apresente prova), P (Push — empurrão final com urgência e CTA)." },
+  { id: "slap", emoji: "👋", nome: "SLAP", categoria: "Frameworks", descricao: "Stop, Look, Act, Purchase. Curto, direto e agressivo para parar o scroll.", prompt: "Use o framework SLAP: S (Stop), L (Look), A (Act), P (Purchase). Peça curta, sem enrolação, texto de impacto." },
+  { id: "parabola", emoji: "📖", nome: "Parábola", categoria: "Narrativos", descricao: "Gancho → História → Lição → Conexão → CTA. História real com cena e diálogo.", prompt: "Use o framework PARÁBOLA: gancho que prende, história real ou verossímil (com cena, diálogo e detalhe sensorial), lição, conexão com a solução da It Case, CTA. Inclua versão curta para stories." },
+  { id: "18-ganchos", emoji: "🪝", nome: "18 Ganchos", categoria: "Ganchos", descricao: "3 variações para CADA categoria: DOR, TRANSFORMAÇÃO, CURIOSIDADE, URGÊNCIA, AUTORIDADE + 3 combinados.", prompt: "Gere 18 ganchos numerados, organizados em 6 grupos de 3: (1) DOR/PROBLEMA, (2) TRANSFORMAÇÃO, (3) CURIOSIDADE, (4) URGÊNCIA, (5) AUTORIDADE, (6) COMBINADOS. Total: 18 ganchos numerados." },
+  { id: "ganchos-video", emoji: "🎬", nome: "Ganchos de Vídeo", categoria: "Ganchos", descricao: "10 ganchos dos primeiros 3 segundos. Fala de abertura + indicação visual.", prompt: "Gere 10 ganchos para os primeiros 3 segundos de vídeo curto (Reels/TikTok). Para cada gancho: (a) FALA — o que dizer em voz, (b) VISUAL — o que aparece na tela. Formato numerado de 1 a 10." },
+];
+
+const CATEGORIA_COR: Record<string, string> = {
+  "Frameworks": "text-blue-600",
+  "Ganchos": "text-orange-500",
+  "Narrativos": "text-purple-600",
+};
+
+type Filtro = "todos" | "revisar" | "aprovados" | "descartados";
+type TelaAcao = null | "aprovar" | "descartar";
+
+export default function RoteirosPage() {
+  const [conteudos, setConteudos] = useState<Conteudo[]>([]);
+  const [temas, setTemas] = useState<Tema[]>([]);
+  const [selecionado, setSelecionado] = useState<Conteudo | null>(null);
+  const [gerando, setGerando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [criandoNovo, setCriandoNovo] = useState(false);
+  const [filtro, setFiltro] = useState<Filtro>("todos");
+  const [telaAcao, setTelaAcao] = useState<TelaAcao>(null);
+  const [mostrarRoteiro, setMostrarRoteiro] = useState(true);
+  const [mostrarLegenda, setMostrarLegenda] = useState(false);
+  const [editandoRoteiro, setEditandoRoteiro] = useState(false);
+  const [editandoLegenda, setEditandoLegenda] = useState(false);
+  const [roteiroTemp, setRoteiroTemp] = useState("");
+  const [legendaTemp, setLegendaTemp] = useState("");
+  const [instrucaoMelhoria, setInstrucaoMelhoria] = useState("");
+  const [mostrarVersaoAnterior, setMostrarVersaoAnterior] = useState(false);
+  const [form, setForm] = useState({ titulo: "", formato: "REELS", temaId: "", instrucao: "", framework: "" });
+
+  const frameworkSelecionado = FRAMEWORKS.find((f) => f.id === form.framework);
+  const podeGerar = form.titulo.trim() && form.framework;
+
+  async function carregar() {
+    const [c, t] = await Promise.all([
+      fetch("/api/conteudos").then((r) => r.json()),
+      fetch("/api/temas").then((r) => r.json()),
+    ]);
+    setConteudos(c);
+    setTemas(t);
+  }
+
+  useEffect(() => { carregar(); }, []);
+
+  const conteudosFiltrados = conteudos.filter((c) => {
+    if (filtro === "revisar") return c.status === "REVISAR_MAIS_TARDE";
+    if (filtro === "aprovados") return ["APROVADO", "AGENDADO", "EM_PRODUCAO", "PRONTO_PUBLICAR", "PUBLICADO"].includes(c.status);
+    if (filtro === "descartados") return c.status === "DESCARTADO";
+    return true;
+  });
+
+  async function criarRoteiro() {
+    if (!form.titulo.trim() || !form.framework) return;
+    setGerando(true);
+    try {
+      const res = await fetch("/api/roteiros/gerar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, frameworkNome: frameworkSelecionado?.nome, frameworkPrompt: frameworkSelecionado?.prompt }),
+      });
+      const data = await res.json();
+      if (data.erro) { alert(data.erro); return; }
+      await carregar();
+      setSelecionado(data);
+      setCriandoNovo(false);
+      setTelaAcao(null);
+      setForm({ titulo: "", formato: "REELS", temaId: "", instrucao: "", framework: "" });
+    } finally {
+      setGerando(false);
+    }
+  }
+
+  async function melhorarRoteiro() {
+    if (!selecionado || !instrucaoMelhoria.trim()) return;
+    setGerando(true);
+    try {
+      const res = await fetch(`/api/roteiros/${selecionado.id}/melhorar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instrucao: instrucaoMelhoria }),
+      });
+      const data = await res.json();
+      if (data.erro) { alert(data.erro); return; }
+      setSelecionado(data);
+      setInstrucaoMelhoria("");
+      await carregar();
+    } finally {
+      setGerando(false);
+    }
+  }
+
+  async function aprovar(adicionarCalendario: boolean) {
+    if (!selecionado) return;
+    setSalvando(true);
+    try {
+      const res = await fetch(`/api/conteudos/${selecionado.id}/aprovar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adicionarCalendario }),
+      });
+      const data = await res.json();
+      setSelecionado(data);
+      setTelaAcao(null);
+      await carregar();
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function marcarRevisar() {
+    if (!selecionado) return;
+    setSalvando(true);
+    try {
+      await fetch(`/api/conteudos/${selecionado.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "REVISAR_MAIS_TARDE" }),
+      });
+      setSelecionado((p) => p ? { ...p, status: "REVISAR_MAIS_TARDE" } : p);
+      await carregar();
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function descartar() {
+    if (!selecionado) return;
+    setSalvando(true);
+    try {
+      await fetch(`/api/conteudos/${selecionado.id}`, { method: "DELETE" });
+      setSelecionado(null);
+      setTelaAcao(null);
+      await carregar();
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function salvarCampo(campo: string, valor: string) {
+    if (!selecionado) return;
+    await fetch(`/api/conteudos/${selecionado.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [campo]: valor }),
+    });
+    setSelecionado((p) => p ? { ...p, [campo]: valor } : p);
+    setConteudos((prev) => prev.map((c) => c.id === selecionado.id ? { ...c, [campo]: valor } : c));
+  }
+
+  async function salvarStatus(status: string) {
+    if (!selecionado) return;
+    await fetch(`/api/conteudos/${selecionado.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    setSelecionado((p) => p ? { ...p, status } : p);
+    setConteudos((prev) => prev.map((c) => c.id === selecionado.id ? { ...c, status } : c));
+  }
+
+  function badgeStatus(status: string) {
+    const cfg = STATUS_CONFIG[status];
+    const label = cfg?.label ?? status;
+    const cor = cfg?.cor ?? "bg-gray-100 text-gray-600";
+    const dot = cfg?.dot ?? "#9CA3AF";
+    return (
+      <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${cor}`}>
+        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: dot }} />
+        {label}
+      </span>
+    );
+  }
+
+  const isGeradoIA = selecionado?.status === "GERADO_IA" || selecionado?.status === "ROTEIRO_PRONTO";
+
+  return (
+    <div className="flex h-full">
+      {/* Sidebar */}
+      <div className="w-60 shrink-0 border-r border-gray-100 flex flex-col">
+        <div className="p-4 border-b border-gray-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-900">Roteiros</h2>
+            <button
+              onClick={() => { setCriandoNovo(true); setSelecionado(null); setTelaAcao(null); }}
+              className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-900 text-white hover:bg-gray-700 transition-colors"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+
+          {/* Filtros */}
+          <div className="flex flex-col gap-0.5">
+            {([["todos", "Todos"], ["revisar", "Revisar depois"], ["aprovados", "Aprovados"], ["descartados", "Descartados"]] as [Filtro, string][]).map(([f, label]) => (
+              <button
+                key={f}
+                onClick={() => setFiltro(f)}
+                className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors ${filtro === f ? "bg-gray-900 text-white font-medium" : "text-gray-600 hover:bg-gray-50"}`}
+              >
+                {label}
+                <span className="ml-1 opacity-60 text-[10px]">
+                  {f === "todos" ? conteudos.length :
+                   f === "revisar" ? conteudos.filter((c) => c.status === "REVISAR_MAIS_TARDE").length :
+                   f === "aprovados" ? conteudos.filter((c) => ["APROVADO","AGENDADO","EM_PRODUCAO","PRONTO_PUBLICAR","PUBLICADO"].includes(c.status)).length :
+                   conteudos.filter((c) => c.status === "DESCARTADO").length}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-3 space-y-1">
+          {criandoNovo && (
+            <button className="w-full text-left p-3 rounded-lg text-xs bg-gray-900 text-white">
+              <div className="font-medium">Novo roteiro</div>
+              <div className="text-gray-400 mt-0.5">{frameworkSelecionado?.nome ?? "Escolha um modelo"}</div>
+            </button>
+          )}
+          {conteudosFiltrados.map((c) => {
+            const dot = STATUS_CONFIG[c.status]?.dot ?? "#9CA3AF";
+            const fmt = FORMATOS_CONFIG[c.formato]?.label ?? c.formato;
+            return (
+              <button
+                key={c.id}
+                onClick={() => { setSelecionado(c); setCriandoNovo(false); setTelaAcao(null); setEditandoRoteiro(false); setEditandoLegenda(false); }}
+                className={`w-full text-left p-3 rounded-lg text-xs transition-colors ${selecionado?.id === c.id && !criandoNovo ? "bg-gray-900 text-white" : "hover:bg-gray-50 text-gray-700"}`}
+              >
+                <div className="font-medium truncate">{c.titulo}</div>
+                <div className="mt-0.5 flex items-center gap-1 text-gray-400">
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: dot }} />
+                  {fmt}
+                </div>
+              </button>
+            );
+          })}
+
+          {conteudosFiltrados.length === 0 && !criandoNovo && (
+            <div className="text-center py-8 text-gray-400">
+              <FileText size={24} className="mx-auto mb-2 opacity-30" />
+              <p className="text-xs">Nenhum roteiro aqui</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Painel principal */}
+      <div className="flex-1 overflow-y-auto">
+
+        {/* Novo roteiro */}
+        {criandoNovo && (
+          <div className="p-8 max-w-3xl">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Novo roteiro</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Escolha o modelo de conteúdo que a IA vai usar</p>
+              </div>
+              <button onClick={() => setCriandoNovo(false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400"><X size={16} /></button>
+            </div>
+
+            <div className="flex gap-3 mb-6">
+              <input
+                value={form.titulo}
+                onChange={(e) => setForm((p) => ({ ...p, titulo: e.target.value }))}
+                placeholder="Título do conteúdo"
+                className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-400"
+              />
+              <select value={form.formato} onChange={(e) => setForm((p) => ({ ...p, formato: e.target.value }))} className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none bg-white">
+                {FORMATOS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+              </select>
+              {temas.length > 0 && (
+                <select value={form.temaId} onChange={(e) => setForm((p) => ({ ...p, temaId: e.target.value }))} className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none bg-white">
+                  <option value="">Sem tema</option>
+                  {temas.map((t) => <option key={t.id} value={t.id}>{t.titulo}</option>)}
+                </select>
+              )}
+            </div>
+
+            <div className="mb-2">
+              <div className="text-xs font-medium text-gray-500 mb-3 uppercase tracking-wide">Modelo de conteúdo</div>
+              <div className="grid grid-cols-2 gap-3">
+                {FRAMEWORKS.map((fw) => {
+                  const ativo = form.framework === fw.id;
+                  return (
+                    <button key={fw.id} onClick={() => setForm((p) => ({ ...p, framework: fw.id }))}
+                      className={`text-left p-4 rounded-xl border-2 transition-all ${ativo ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200 bg-white hover:border-gray-400 hover:shadow-sm"}`}>
+                      <div className="flex items-start justify-between mb-2">
+                        <span className="text-lg">{fw.emoji}</span>
+                        <span className={`text-[11px] font-semibold ${ativo ? "text-gray-400" : CATEGORIA_COR[fw.categoria]}`}>{fw.categoria}</span>
+                      </div>
+                      <div className={`font-semibold text-sm mb-1 ${ativo ? "text-white" : "text-gray-900"}`}>{fw.nome}</div>
+                      <div className={`text-[12px] leading-snug ${ativo ? "text-gray-300" : "text-gray-500"}`}>{fw.descricao}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-5 mb-5">
+              <input value={form.instrucao} onChange={(e) => setForm((p) => ({ ...p, instrucao: e.target.value }))}
+                placeholder="Instrução extra (opcional) — ex: foco em seminovos, tom mais descontraído..."
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-400" />
+            </div>
+
+            <button onClick={criarRoteiro} disabled={gerando || !podeGerar}
+              className="w-full text-sm bg-gray-900 text-white py-3 rounded-xl hover:bg-gray-700 disabled:opacity-40 transition-colors flex items-center justify-center gap-2 font-medium">
+              <Sparkles size={14} />
+              {gerando ? "Gerando roteiro…" : !form.titulo.trim() ? "Preencha o título para gerar" : !form.framework ? "Escolha um modelo acima" : `Gerar com ${frameworkSelecionado?.nome}`}
+              {podeGerar && !gerando && <ChevronRight size={14} />}
+            </button>
+          </div>
+        )}
+
+        {/* Visualizar roteiro selecionado */}
+        {selecionado && !criandoNovo && (
+          <div className="p-8 max-w-3xl">
+            {/* Header */}
+            <div className="flex items-start justify-between mb-5">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-2">
+                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">{FORMATOS_CONFIG[selecionado.formato]?.label ?? selecionado.formato}</span>
+                  {badgeStatus(selecionado.status)}
+                  {selecionado.etapaFunil && (
+                    <span className="text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full">
+                      {selecionado.etapaFunil === "TOPO" ? "Topo do funil" : selecionado.etapaFunil === "MEIO" ? "Meio do funil" : "Fundo do funil"}
+                    </span>
+                  )}
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900 leading-snug">{selecionado.titulo}</h2>
+                {selecionado.objetivo && <p className="text-sm text-gray-500 mt-1">{selecionado.objetivo}</p>}
+              </div>
+            </div>
+
+            {/* Botões de ação para GERADO_IA */}
+            {isGeradoIA && telaAcao === null && (
+              <div className="flex gap-2 mb-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-blue-900 mb-1">Roteiro gerado pela IA</p>
+                  <p className="text-xs text-blue-700">Revise o conteúdo e escolha uma ação</p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button onClick={() => setTelaAcao("aprovar")} className="flex items-center gap-1.5 text-xs bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium">
+                    <Check size={13} /> Aprovar
+                  </button>
+                  <button onClick={marcarRevisar} disabled={salvando} className="flex items-center gap-1.5 text-xs bg-amber-500 text-white px-3 py-2 rounded-lg hover:bg-amber-600 transition-colors font-medium">
+                    <Clock size={13} /> Mais tarde
+                  </button>
+                  <button onClick={() => setTelaAcao("descartar")} className="flex items-center gap-1.5 text-xs bg-red-100 text-red-600 px-3 py-2 rounded-lg hover:bg-red-200 transition-colors font-medium">
+                    <Trash2 size={13} /> Descartar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Confirmação de aprovar */}
+            {telaAcao === "aprovar" && (
+              <div className="mb-6 p-4 bg-green-50 rounded-xl border border-green-100">
+                <p className="text-sm font-semibold text-green-900 mb-1 flex items-center gap-1.5"><CalendarPlus size={15} />Adicionar ao calendário?</p>
+                <p className="text-xs text-green-700 mb-3">Deseja agendar este conteúdo no próximo dia disponível?</p>
+                <div className="flex gap-2">
+                  <button onClick={() => aprovar(true)} disabled={salvando} className="flex items-center gap-1.5 text-xs bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50">
+                    <CalendarPlus size={13} />{salvando ? "Agendando…" : "Sim, adicionar ao calendário"}
+                  </button>
+                  <button onClick={() => aprovar(false)} disabled={salvando} className="flex items-center gap-1.5 text-xs bg-white text-green-700 border border-green-200 px-4 py-2 rounded-lg hover:bg-green-50 transition-colors font-medium disabled:opacity-50">
+                    <Check size={13} /> Não, só aprovar
+                  </button>
+                  <button onClick={() => setTelaAcao(null)} className="text-xs text-gray-400 hover:text-gray-600 px-2">Cancelar</button>
+                </div>
+              </div>
+            )}
+
+            {/* Confirmação de descartar */}
+            {telaAcao === "descartar" && (
+              <div className="mb-6 p-4 bg-red-50 rounded-xl border border-red-100">
+                <p className="text-sm font-semibold text-red-800 mb-1">Tem certeza?</p>
+                <p className="text-xs text-red-600 mb-3">Este roteiro será excluído permanentemente.</p>
+                <div className="flex gap-2">
+                  <button onClick={descartar} disabled={salvando} className="text-xs bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50">
+                    {salvando ? "Excluindo…" : "Sim, excluir"}
+                  </button>
+                  <button onClick={() => setTelaAcao(null)} className="text-xs bg-white text-gray-600 border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
+                </div>
+              </div>
+            )}
+
+            {/* Status + Responsável (para não-GERADO_IA) */}
+            {!isGeradoIA && (
+              <div className="flex flex-wrap items-center gap-4 mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="text-xs text-gray-500 shrink-0">Status</div>
+                  <select value={selecionado.status} onChange={(e) => salvarStatus(e.target.value)} className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-gray-400 bg-white">
+                    {STATUS_LIST.map((s) => <option key={s} value={s}>{STATUS_CONFIG[s]?.label ?? s}</option>)}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-xs text-gray-500 shrink-0">Responsável</div>
+                  <div className="flex gap-1">
+                    {RESPONSAVEIS.map((r) => {
+                      const ativo = selecionado.responsavel === r.nome;
+                      return (
+                        <button key={r.nome}
+                          onClick={() => salvarCampo("responsavel", ativo ? "" : r.nome)}
+                          title={r.nome}
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white transition-all"
+                          style={{ backgroundColor: ativo ? r.cor : "#E5E7EB", color: ativo ? "white" : r.cor, border: ativo ? `2px solid ${r.cor}` : "2px solid #E5E7EB" }}>
+                          {r.inicial}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Roteiro */}
+            {selecionado.roteiro && (
+              <div className="mb-4">
+                <button onClick={() => setMostrarRoteiro((v) => !v)} className="w-full flex items-center justify-between text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2 hover:text-gray-900">
+                  <span>Roteiro</span>
+                  {mostrarRoteiro ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+                {mostrarRoteiro && (
+                  editandoRoteiro ? (
+                    <div>
+                      <textarea value={roteiroTemp} onChange={(e) => setRoteiroTemp(e.target.value)}
+                        className="w-full text-sm border border-gray-200 rounded-xl p-4 focus:outline-none focus:border-gray-400 min-h-[200px] leading-relaxed resize-y" />
+                      <div className="flex gap-2 mt-2">
+                        <button onClick={async () => { await salvarCampo("roteiro", roteiroTemp); setEditandoRoteiro(false); }}
+                          className="text-xs bg-gray-900 text-white px-3 py-1.5 rounded-lg hover:bg-gray-700">Salvar</button>
+                        <button onClick={() => setEditandoRoteiro(false)} className="text-xs text-gray-500 hover:text-gray-700 px-2">Cancelar</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative group">
+                      <div className="bg-gray-50 rounded-xl p-5 whitespace-pre-wrap text-sm text-gray-700 leading-relaxed border border-gray-100">{selecionado.roteiro}</div>
+                      <button onClick={() => { setRoteiroTemp(selecionado.roteiro ?? ""); setEditandoRoteiro(true); }}
+                        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-white rounded-lg shadow-sm border border-gray-200 text-gray-500 hover:text-gray-700">
+                        <Pencil size={12} />
+                      </button>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+
+            {/* Legenda */}
+            {(selecionado.legenda || mostrarLegenda) && (
+              <div className="mb-4">
+                <button onClick={() => setMostrarLegenda((v) => !v)} className="w-full flex items-center justify-between text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2 hover:text-gray-900">
+                  <span>Legenda</span>
+                  {mostrarLegenda ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+                {mostrarLegenda && (
+                  editandoLegenda ? (
+                    <div>
+                      <textarea value={legendaTemp} onChange={(e) => setLegendaTemp(e.target.value)}
+                        className="w-full text-sm border border-gray-200 rounded-xl p-4 focus:outline-none focus:border-gray-400 min-h-[100px] leading-relaxed resize-y" />
+                      <div className="flex gap-2 mt-2">
+                        <button onClick={async () => { await salvarCampo("legenda", legendaTemp); setEditandoLegenda(false); }}
+                          className="text-xs bg-gray-900 text-white px-3 py-1.5 rounded-lg hover:bg-gray-700">Salvar</button>
+                        <button onClick={() => setEditandoLegenda(false)} className="text-xs text-gray-500 hover:text-gray-700 px-2">Cancelar</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative group">
+                      <div className="bg-purple-50 rounded-xl p-4 whitespace-pre-wrap text-sm text-gray-700 leading-relaxed border border-purple-100">
+                        {selecionado.legenda || <span className="text-gray-400 italic">Nenhuma legenda gerada</span>}
+                      </div>
+                      <button onClick={() => { setLegendaTemp(selecionado.legenda ?? ""); setEditandoLegenda(true); }}
+                        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-white rounded-lg shadow-sm border border-gray-200 text-gray-500 hover:text-gray-700">
+                        <Pencil size={12} />
+                      </button>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+
+            {/* Mostrar legenda se não existir ainda */}
+            {!selecionado.legenda && !mostrarLegenda && (
+              <button onClick={() => setMostrarLegenda(true)} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 mb-4">
+                <ChevronDown size={12} /> Mostrar legenda
+              </button>
+            )}
+
+            {/* Versão anterior */}
+            {selecionado.roteiroAnterior && (
+              <div className="mb-4 border border-amber-100 rounded-xl overflow-hidden">
+                <button onClick={() => setMostrarVersaoAnterior((v) => !v)}
+                  className="w-full flex items-center justify-between px-4 py-2.5 bg-amber-50 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition-colors">
+                  <span className="flex items-center gap-1.5">
+                    <Clock size={12} /> Versão anterior (antes de "Melhorar")
+                  </span>
+                  {mostrarVersaoAnterior ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </button>
+                {mostrarVersaoAnterior && (
+                  <div className="p-4 bg-amber-50/40 text-xs text-gray-600 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto border-t border-amber-100">
+                    {selecionado.roteiroAnterior}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Melhorar com IA */}
+            <div className="flex gap-2 mt-2">
+              <input value={instrucaoMelhoria} onChange={(e) => setInstrucaoMelhoria(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && melhorarRoteiro()}
+                placeholder="O que quer melhorar? Ex: deixar mais curto, mudar o gancho..."
+                className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-400" />
+              <button onClick={melhorarRoteiro} disabled={gerando || !instrucaoMelhoria.trim()}
+                className="text-sm bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-700 disabled:opacity-40 transition-colors flex items-center gap-2 whitespace-nowrap">
+                <Sparkles size={13} />
+                {gerando ? "Melhorando…" : "Melhorar"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Estado vazio */}
+        {!selecionado && !criandoNovo && (
+          <div className="flex flex-col items-center justify-center h-full text-center text-gray-400">
+            <FileText size={40} className="mb-4 opacity-20" />
+            <p className="text-sm mb-3">Selecione um roteiro ou crie um novo</p>
+            <button onClick={() => setCriandoNovo(true)} className="text-xs bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-1.5">
+              <Plus size={12} /> Novo roteiro
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

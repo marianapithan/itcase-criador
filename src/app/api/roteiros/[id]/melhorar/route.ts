@@ -1,0 +1,44 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db/client";
+import { chamarIA, contextoCerebro } from "@/lib/ai/gateway";
+
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const { instrucao } = await req.json();
+
+  const conteudo = await prisma.conteudo.findUnique({ where: { id } });
+  if (!conteudo) return NextResponse.json({ erro: "Conteúdo não encontrado" }, { status: 404 });
+  if (!conteudo.roteiro) return NextResponse.json({ erro: "Este conteúdo ainda não tem roteiro" }, { status: 400 });
+
+  const resultado = await chamarIA({
+    funcionalidade: "melhorar-roteiro",
+    sistema: contextoCerebro(),
+    prompt: `Melhore este roteiro conforme a instrução abaixo.
+
+ROTEIRO ATUAL:
+${conteudo.roteiro}
+
+INSTRUÇÃO DE MELHORIA:
+${instrucao}
+
+Retorne apenas o roteiro melhorado, sem explicações.`,
+    maxTokens: 2500,
+  });
+
+  if (!resultado.sucesso) {
+    return NextResponse.json({ erro: resultado.erro }, { status: 400 });
+  }
+
+  const atualizado = await prisma.conteudo.update({
+    where: { id },
+    data: {
+      roteiroAnterior: conteudo.roteiro,
+      legendaAnterior: conteudo.legenda ?? null,
+      roteiro: resultado.conteudo,
+      providerUsado: resultado.provedor,
+      modeloUsado: resultado.modelo,
+    },
+  });
+
+  return NextResponse.json(atualizado);
+}

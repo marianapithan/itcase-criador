@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Estrategia {
+  id          String   @id @default(cuid())
+  titulo      String
+  descricao   String?
+  objetivo    String?
+  publicoAlvo String?
+  criadoEm    DateTime @default(now())
+  temas       Tema[]
+}
+
+model Tema {
+  id           String      @id @default(cuid())
+  titulo       String
+  descricao    String?
+  status       String      @default("IDEIA")
+  estrategiaId String?
+  estrategia   Estrategia? @relation(fields: [estrategiaId], references: [id])
+  microtemas   Microtema[]
+  conteudos    Conteudo[]
+  criadoEm     DateTime    @default(now())
+  atualizadoEm DateTime    @updatedAt
+}
+
+model Microtema {
+  id          String     @id @default(cuid())
+  titulo      String
+  descricao   String?
+  status      String     @default("IDEIA")
+  temaId      String
+  tema        Tema       @relation(fields: [temaId], references: [id], onDelete: Cascade)
+  conteudos   Conteudo[]
+  criadoEm    DateTime   @default(now())
+}
+
+model Conteudo {
+  id             String     @id @default(cuid())
+  titulo         String
+  descricao      String?
+  roteiro        String?
+  formato        String     @default("POST_ESTATICO")
+  canal          String?
+  status         String     @default("IDEIA")
+  dataplanejada  DateTime?
+  dataPublicacao DateTime?
+  urlPublicacao  String?
+  objetivo       String?
+  cta            String?
+  campanha       String?
+  temaId         String?
+  tema           Tema?      @relation(fields: [temaId], references: [id])
+  microtemaId    String?
+  microtema      Microtema? @relation(fields: [microtemaId], references: [id])
+  origemId       String?
+  origem         Conteudo?  @relation("Versoes", fields: [origemId], references: [id])
+  versoes        Conteudo[] @relation("Versoes")
+  providerUsado  String?
+  modeloUsado    String?
+  legenda        String?
+  etapaFunil     String?
+  responsavel    String?
+  gravado        Boolean    @default(false)
+  editado        Boolean    @default(false)
+  agendadoRede   Boolean    @default(false)
+  concluido      Boolean    @default(false)
+  roteiroAnterior String?
+  legendaAnterior String?
+  trafegoAtivo       Boolean   @default(false)
+  trafegoStatus      String?
+  trafegoInicio      DateTime?
+  trafegoFim         DateTime?
+  trafegoObjetivo    String?
+  trafegoObs         String?
+  criadoEm       DateTime   @default(now())
+  atualizadoEm   DateTime   @updatedAt
+}
+
+
+model Tendencia {
+  id          String   @id @default(cuid())
+  titulo      String
+  descricao   String
+  plataforma  String
+  categoria   String
+  grau        String   @default("MEDIA")
+  motivo      String?
+  publico     String?
+  potAlcance  String?
+  potVendas   String?
+  status      String   @default("NOVA")
+  formato     String?
+  criadoEm    DateTime @default(now())
+}
+
+model CampanhaTrafego {
+  id          String   @id @default(cuid())
+  nome        String
+  dataInicio  DateTime
+  dataFim     DateTime
+  objetivo    String?
+  observacoes String?
+  criadoEm    DateTime @default(now())
+}
+model ConfigIA {
+  id              String    @id @default(cuid())
+  provedor        String    @unique
+  ativo           Boolean   @default(false)
+  prioridade      Int       @default(1)
+  modeloPrincipal String?
+  modeloFallback  String?
+  ultimoTeste     DateTime?
+  statusTeste     String?
+  criadoEm        DateTime  @default(now())
+}
+
+model LogIA {
+  id             String   @id @default(cuid())
+  requestId      String   @unique @default(cuid())
+  funcionalidade String
+  provedor       String
+  modelo         String
+  sucesso        Boolean
+  tokensEntrada  Int?
+  tokensSaida    Int?
+  latenciaMs     Int?
+  tentativas     Int      @default(1)
+  erro           String?
+  criadoEm       DateTime @default(now())
+}
