@@ -567,9 +567,11 @@ export default function CalendarioPage() {
                     onPointerEnter={() => { if (mesoDrag) document.body.style.cursor = "copy"; }}
                     onPointerLeave={() => { if (mesoDrag) document.body.style.cursor = "grabbing"; }}>
                     {/* Day number */}
-                    <div className={`text-xs font-semibold mb-1 w-6 h-6 flex items-center justify-center rounded-full mx-auto ${hoje ? "bg-gray-900 text-white" : doMes ? "text-gray-700" : "text-gray-400"}`}>
+                    <button
+                      onClick={() => { setRefDate(dia); setView("hoje"); }}
+                      className={`text-xs font-semibold mb-1 w-6 h-6 flex items-center justify-center rounded-full mx-auto transition-colors ${hoje ? "bg-gray-900 text-white" : doMes ? "text-gray-700 hover:bg-gray-100" : "text-gray-400 hover:bg-gray-100"}`}>
                       {format(dia, "d")}
-                    </div>
+                    </button>
                     {/* Add button */}
                     <button className="w-full text-[10px] text-gray-300 hover:text-gray-600 hover:bg-gray-50 rounded py-0.5 transition-colors flex items-center justify-center gap-0.5 mb-1 opacity-0 hover:opacity-100 group"
                       onClick={() => { setSelecionado(null); setNovoSlot({ dia, hora: 12 }); setNovoForm((p) => ({ ...p, hora: 12, minuto: 0 })); }}>
@@ -620,12 +622,13 @@ export default function CalendarioPage() {
               {activeDias.map((dia) => {
                 const hoje = isToday(dia);
                 return (
-                  <div key={dia.toISOString()} className="flex-1 py-2 text-center border-l border-gray-100">
+                  <button key={dia.toISOString()} onClick={() => { setRefDate(dia); setView("hoje"); }}
+                    className="flex-1 py-2 text-center border-l border-gray-100 hover:bg-gray-50 transition-colors">
                     <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">{format(dia, "EEE", { locale: ptBR })}</div>
                     <div className={`text-sm font-bold mt-0.5 w-8 h-8 flex items-center justify-center rounded-full mx-auto ${hoje ? "bg-gray-900 text-white" : "text-gray-700"}`}>
                       {format(dia, "d")}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
