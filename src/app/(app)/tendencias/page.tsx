@@ -187,36 +187,37 @@ export default function TendenciasPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 bg-white shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-              <Radar size={16} className="text-purple-600" />
+        <div className="flex items-center justify-between px-4 md:px-5 py-2 md:py-3 border-b border-gray-200 bg-white shrink-0">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0">
+            <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
+              <Radar size={15} className="text-purple-600" />
             </div>
-            <div>
-              <h1 className="font-semibold text-gray-900 text-sm">Radar de Tendências</h1>
-              <p className="text-[11px] text-gray-400">
+            <div className="min-w-0">
+              <h1 className="font-semibold text-gray-900 text-sm truncate">Radar de Tendências</h1>
+              <p className="text-[11px] text-gray-400 hidden sm:block">
                 {ultimaAtualizacao
                   ? `Atualizado ${format(ultimaAtualizacao, "HH:mm 'de' dd/MM", { locale: ptBR })}`
                   : "IA pesquisa oportunidades de conteúdo para o seu nicho"}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {feedback && (
-              <div className="text-xs text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+              <div className="hidden sm:flex text-xs text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg items-center gap-1.5">
                 <TrendingUp size={12} /> {feedback}
               </div>
             )}
             <button onClick={pesquisar} disabled={pesquisando}
-              className="flex items-center gap-2 text-xs bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors font-medium">
-              <RefreshCw size={13} className={pesquisando ? "animate-spin" : ""} />
-              {pesquisando ? "Pesquisando…" : "Pesquisar agora"}
+              className="flex items-center gap-1.5 text-xs bg-purple-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors font-medium">
+              <RefreshCw size={12} className={pesquisando ? "animate-spin" : ""} />
+              <span className="hidden sm:inline">{pesquisando ? "Pesquisando…" : "Pesquisar agora"}</span>
+              <span className="sm:hidden">{pesquisando ? "…" : "Pesquisar"}</span>
             </button>
           </div>
         </div>
 
         {/* Stats row */}
-        <div className="flex items-center gap-4 px-5 py-2.5 border-b border-gray-100 bg-gray-50 shrink-0 text-xs">
+        <div className="flex items-center gap-3 md:gap-4 px-4 md:px-5 py-2 border-b border-gray-100 bg-gray-50 shrink-0 text-xs overflow-x-auto">
           <button onClick={() => setFiltroStatus("NOVA")}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-full transition-all ${filtroStatus === "NOVA" ? "bg-purple-600 text-white" : "text-gray-500 hover:bg-gray-200"}`}>
             <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />Novas
@@ -233,10 +234,10 @@ export default function TendenciasPage() {
             <span className={`font-bold ${filtroStatus === "" ? "text-gray-300" : "text-gray-400"}`}>{contagem.total}</span>
           </button>
 
-          <div className="w-px h-4 bg-gray-200" />
+          <div className="w-px h-4 bg-gray-200 shrink-0" />
 
           {/* Filtros plataforma */}
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 shrink-0">
             {PLATAFORMAS.map((p) => {
               const Icon = p.icon;
               const ativo = filtroPlat === p.value;
@@ -250,10 +251,10 @@ export default function TendenciasPage() {
             })}
           </div>
 
-          <div className="w-px h-4 bg-gray-200" />
+          <div className="w-px h-4 bg-gray-200 shrink-0" />
 
           {/* Filtros categoria */}
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 shrink-0">
             {CATEGORIAS.map((c) => {
               const ativo = filtroCat === c.value;
               return (
@@ -266,7 +267,7 @@ export default function TendenciasPage() {
             })}
           </div>
 
-          <div className="w-px h-4 bg-gray-200" />
+          <div className="w-px h-4 bg-gray-200 shrink-0" />
 
           {/* Filtro grau */}
           {(["", "ALTA", "MEDIA", "BAIXA"] as const).map((g) => {
