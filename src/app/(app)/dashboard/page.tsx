@@ -1,37 +1,51 @@
 import { prisma } from "@/lib/db/client";
-import { Lightbulb, BookOpen, CalendarDays, TrendingUp, Users, DollarSign, AlertCircle } from "lucide-react";
+import { Lightbulb, BookOpen, CalendarDays, TrendingUp, AlertCircle, CheckCircle2, Clock } from "lucide-react";
 import Link from "next/link";
-import { STATUS_CONFIG } from "@/lib/constants";
+import { STATUS_CONFIG, FORMATOS_CONFIG } from "@/lib/constants";
 import { CONFIG } from "@/lib/config";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-const { receita: META_RECEITA, seguidores: META_SEGUIDORES, publicados: META_PUBLICADOS, dias: DIAS_META } = CONFIG.metas;
+const { publicados: META_PUBLICADOS_90D } = CONFIG.metas;
+const META_MES = Math.ceil(META_PUBLICADOS_90D / 3);
 
 export default async function Dashboard() {
   const hoje = new Date();
-  const inicioPeriodo = new Date(hoje);
-  inicioPeriodo.setDate(hoje.getDate() - DIAS_META);
+  const inicioDia = new Date(hoje); inicioDia.setHours(0, 0, 0, 0);
+  const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0, 23, 59, 59);
+  const em7dias = new Date(hoje.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-  const [totalTemas, totalConteudos, agendados, publicados, aprovados, proximosNaoGravados] = await Promise.all([
+  const [totalTemas, totalConteudos, agendados, aprovados, proximosNaoGravados, publicadosMes, proximosConteudos] = await Promise.all([
     prisma.tema.count(),
     prisma.conteudo.count(),
     prisma.conteudo.count({ where: { status: "AGENDADO" } }),
-    prisma.conteudo.count({ where: { status: "PUBLICADO" } }),
     prisma.conteudo.count({ where: { status: "APROVADO" } }),
-    // conteúdos agendados nos próximos 2 dias sem "gravado"
     prisma.conteudo.count({
       where: {
-        dataplanejada: {
-          gte: hoje,
-          lte: new Date(hoje.getTime() + 2 * 24 * 60 * 60 * 1000),
-        },
+        dataplanejada: { gte: hoje, lte: new Date(hoje.getTime() + 2 * 24 * 60 * 60 * 1000) },
         gravado: false,
         status: { in: ["AGENDADO", "APROVADO", "ROTEIRO_PRONTO"] },
       },
     }),
+    prisma.conteudo.count({
+      where: {
+        status: "PUBLICADO",
+        dataplanejada: { gte: inicioMes, lte: fimMes },
+      },
+    }),
+    prisma.conteudo.findMany({
+      where: {
+        dataplanejada: { gte: inicioDia, lte: em7dias },
+        status: { notIn: ["DESCARTADO", "PUBLICADO"] },
+      },
+      orderBy: { dataplanejada: "asc" },
+      take: 6,
+    }),
   ]);
 
   const recentes = await prisma.conteudo.findMany({
-    take: 6,
+    take: 5,
     orderBy: { criadoEm: "desc" },
     include: { tema: { select: { titulo: true } } },
   });
@@ -43,7 +57,9 @@ export default async function Dashboard() {
     { label: "Aprovados",       value: aprovados,      icon: TrendingUp,   href: "/roteiros",   cor: "bg-green-50 text-green-600" },
   ];
 
-  const progPublicados = Math.min(100, (publicados / META_PUBLICADOS) * 100);
+  const progMes = META_MES > 0 ? Math.min(100, (publicadosMes / META_MES) * 100) : 0;
+  const nomeMes = format(hoje, "MMMM", { locale: ptBR });
+  const nomeMesCapitalizado = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
@@ -75,44 +91,86 @@ export default async function Dashboard() {
         ))}
       </div>
 
-      {/* Metas */}
+      {/* Próximos + Progresso do mês */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-        {/* Meta receita */}
-        <div className="bg-gray-900 text-white rounded-xl p-5">
-          <div className="flex items-start justify-between mb-1">
-            <div className="text-xs text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
-              <DollarSign size={11} /> Meta de receita
+
+        {/* Próximos conteúdos */}
+        <div className="border border-gray-100 rounded-xl overflow-hidden bg-white">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <Clock size={13} className="text-gray-400" />
+              <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Próximos 7 dias</span>
             </div>
-            <span className="text-[10px] bg-white/10 text-gray-300 px-2 py-0.5 rounded-full">Projeção · {DIAS_META} dias</span>
+            <Link href="/calendario" className="text-[11px] text-gray-400 hover:text-gray-700 transition-colors">Ver calendário →</Link>
           </div>
-          <div className="text-2xl font-bold mb-3">R$ {META_RECEITA.toLocaleString("pt-BR")}</div>
-          <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
-            <span>{publicados} conteúdos publicados</span>
-            <span>meta: {META_PUBLICADOS}</span>
-          </div>
-          <div className="w-full bg-white/10 rounded-full h-1.5 mb-1.5">
-            <div className="h-1.5 rounded-full bg-green-400 transition-all" style={{ width: `${progPublicados}%` }} />
-          </div>
-          <div className="text-[11px] text-gray-500">
-            Baseado em conteúdos publicados — conecte dados de vendas para progresso real
-          </div>
+          {proximosConteudos.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-gray-300">
+              <CalendarDays size={28} className="mb-2" />
+              <p className="text-xs">Nenhum conteúdo agendado</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {proximosConteudos.map((c) => {
+                const s = STATUS_CONFIG[c.status] ?? { label: c.status, cor: "bg-gray-100 text-gray-600", dot: "#9ca3af" };
+                const fmt = FORMATOS_CONFIG[c.formato];
+                const data = c.dataplanejada ? parseISO(c.dataplanejada as unknown as string) : null;
+                const isHoje = data && format(data, "yyyy-MM-dd") === format(hoje, "yyyy-MM-dd");
+                const isAmanha = data && format(data, "yyyy-MM-dd") === format(new Date(hoje.getTime() + 86400000), "yyyy-MM-dd");
+                const dataLabel = isHoje ? "Hoje" : isAmanha ? "Amanhã" : data ? format(data, "d MMM", { locale: ptBR }) : "";
+                return (
+                  <div key={c.id} className="flex items-center gap-3 px-4 py-2.5">
+                    <div className={`text-[10px] font-bold min-w-[40px] ${isHoje ? "text-orange-500" : isAmanha ? "text-amber-500" : "text-gray-400"}`}>
+                      {dataLabel}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium text-gray-900 truncate">{c.titulo}</div>
+                      {fmt && <div className="text-[10px] text-gray-400">{fmt.label}</div>}
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${s.cor}`}>{s.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {/* Meta seguidores */}
-        <div className="bg-gradient-to-br from-purple-900 to-purple-800 text-white rounded-xl p-5">
-          <div className="flex items-start justify-between mb-1">
-            <div className="text-xs text-purple-300 uppercase tracking-wide flex items-center gap-1.5">
-              <Users size={11} /> Meta de seguidores
+        {/* Progresso do mês */}
+        <div className="border border-gray-100 rounded-xl overflow-hidden bg-white">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 size={13} className="text-gray-400" />
+              <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Publicados em {nomeMesCapitalizado}</span>
             </div>
-            <span className="text-[10px] bg-white/10 text-purple-300 px-2 py-0.5 rounded-full">Projeção · {DIAS_META} dias</span>
+            <Link href="/biblioteca" className="text-[11px] text-gray-400 hover:text-gray-700 transition-colors">Ver biblioteca →</Link>
           </div>
-          <div className="text-2xl font-bold mb-3">{META_SEGUIDORES.toLocaleString("pt-BR")} seguidores</div>
-          <div className="w-full bg-white/10 rounded-full h-1.5 mb-2">
-            <div className="h-1.5 rounded-full bg-purple-300/40 w-full" />
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-purple-400">
-            <AlertCircle size={11} />
-            Sem dados conectados — integre Instagram para acompanhar o progresso real
+          <div className="p-5">
+            <div className="flex items-end gap-2 mb-4">
+              <span className="text-4xl font-bold text-gray-900">{publicadosMes}</span>
+              {META_MES > 0 && (
+                <span className="text-sm text-gray-400 mb-1">/ {META_MES} meta</span>
+              )}
+            </div>
+            {META_MES > 0 && (
+              <>
+                <div className="w-full bg-gray-100 rounded-full h-2 mb-2">
+                  <div
+                    className="h-2 rounded-full transition-all"
+                    style={{
+                      width: `${progMes}%`,
+                      backgroundColor: progMes >= 100 ? "#16a34a" : progMes >= 60 ? "#2563eb" : "#f59e0b",
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-gray-400">
+                  {progMes >= 100
+                    ? "Meta do mês atingida! 🎉"
+                    : `${META_MES - publicadosMes} publicação${META_MES - publicadosMes !== 1 ? "ões" : ""} para a meta`}
+                </p>
+              </>
+            )}
+            {META_MES === 0 && (
+              <p className="text-xs text-gray-400">Configure a meta em <code className="text-[11px] bg-gray-100 px-1 rounded">config.ts</code></p>
+            )}
           </div>
         </div>
       </div>
@@ -136,7 +194,7 @@ export default async function Dashboard() {
       {/* Recentes */}
       {recentes.length > 0 && (
         <div>
-          <h2 className="text-sm font-medium text-gray-900 mb-3">Conteúdos recentes</h2>
+          <h2 className="text-sm font-medium text-gray-900 mb-3">Adicionados recentemente</h2>
           <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
             {recentes.map((c) => {
               const s = STATUS_CONFIG[c.status] ?? { label: c.status, cor: "bg-gray-100 text-gray-600" };
