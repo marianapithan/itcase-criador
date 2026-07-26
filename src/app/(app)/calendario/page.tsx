@@ -470,33 +470,37 @@ export default function CalendarioPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200 bg-white shrink-0">
-          <div className="flex items-center gap-1.5">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-white shrink-0 gap-2">
+          <div className="flex items-center gap-1">
             <button onClick={navPrev} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600"><ChevronLeft size={15} /></button>
-            <span className="text-sm font-semibold text-gray-900 min-w-[240px] text-center capitalize">{headerLabel()}</span>
+            <span className="text-xs md:text-sm font-semibold text-gray-900 min-w-0 md:min-w-[240px] text-center capitalize truncate max-w-[140px] md:max-w-none">{headerLabel()}</span>
             <button onClick={navNext} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-600"><ChevronRight size={15} /></button>
-            <button onClick={navHoje} className="text-xs border border-gray-200 px-2.5 py-1 rounded-lg hover:bg-gray-50 text-gray-600 ml-1">Hoje</button>
+            <button onClick={navHoje} className="text-xs border border-gray-200 px-2 py-1 rounded-lg hover:bg-gray-50 text-gray-600 ml-0.5">Hoje</button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {/* View selector */}
             <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
               {(["hoje", "semana", "mes"] as ViewMode[]).map((v) => (
                 <button key={v} onClick={() => setView(v)}
-                  className={`text-xs px-3 py-1.5 rounded-md capitalize transition-all ${view === v ? "bg-white text-gray-900 font-semibold shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
-                  {v === "mes" ? "Mês" : v.charAt(0).toUpperCase() + v.slice(1)}
+                  className={`text-[11px] md:text-xs px-2 md:px-3 py-1 md:py-1.5 rounded-md capitalize transition-all ${view === v ? "bg-white text-gray-900 font-semibold shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                  {v === "hoje" ? "Dia" : v === "mes" ? "Mês" : "Sem."}
                 </button>
               ))}
             </div>
 
-            {view !== "mes" && Object.entries(FORMATOS_CONFIG).map(([k, cfg]) => (
-              <div key={k} className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cfg.dot }} />
-                <span className="text-xs text-gray-500">{cfg.label}</span>
+            {view !== "mes" && (
+              <div className="hidden md:flex items-center gap-2">
+                {Object.entries(FORMATOS_CONFIG).map(([k, cfg]) => (
+                  <div key={k} className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cfg.dot }} />
+                    <span className="text-xs text-gray-500">{cfg.label}</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
 
-            <button onClick={() => setNovaCampanha(true)} className="flex items-center gap-1 text-xs text-orange-600 border border-orange-200 px-2.5 py-1 rounded-lg hover:bg-orange-50 ml-1">
+            <button onClick={() => setNovaCampanha(true)} className="hidden md:flex items-center gap-1 text-xs text-orange-600 border border-orange-200 px-2.5 py-1 rounded-lg hover:bg-orange-50">
               <Signal size={11} /> Campanha
             </button>
           </div>
@@ -558,7 +562,7 @@ export default function CalendarioPage() {
                 const isDragOver = mesoDrag && !isSameDay(dia, parseISO(mesoDrag.dataplanejada ?? ""));
                 return (
                   <div key={idx}
-                    className={`bg-white min-h-[100px] p-1.5 transition-colors ${isDragOver ? "bg-blue-50" : ""} ${!doMes ? "opacity-40" : ""}`}
+                    className={`bg-white min-h-[70px] md:min-h-[100px] p-1 md:p-1.5 transition-colors ${isDragOver ? "bg-blue-50" : ""} ${!doMes ? "opacity-40" : ""}`}
                     onPointerUp={() => { if (mesoDrag) mesDrop(dia); }}
                     onPointerEnter={() => { if (mesoDrag) document.body.style.cursor = "copy"; }}
                     onPointerLeave={() => { if (mesoDrag) document.body.style.cursor = "grabbing"; }}>

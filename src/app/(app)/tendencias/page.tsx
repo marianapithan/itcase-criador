@@ -409,7 +409,7 @@ export default function TendenciasPage() {
 
       {/* Painel lateral de detalhe */}
       {selecionada && (
-        <div className="w-80 shrink-0 border-l border-gray-200 bg-white overflow-y-auto">
+        <div className="fixed inset-0 z-50 md:static md:inset-auto md:z-auto w-full md:w-80 shrink-0 border-l border-gray-200 bg-white overflow-y-auto">
           <div className="p-5">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-2">

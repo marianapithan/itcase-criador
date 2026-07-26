@@ -46,36 +46,37 @@ export default async function Dashboard() {
   const progPublicados = Math.min(100, (publicados / META_PUBLICADOS) * 100);
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <div className="mb-8 flex items-start justify-between">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto">
+      <div className="mb-6 flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Bom dia! 👋</h1>
-          <p className="text-gray-500 mt-1">Aqui está o resumo do seu Studio de Conteúdo.</p>
+          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Bom dia! 👋</h1>
+          <p className="text-gray-500 mt-1 text-sm">Aqui está o resumo do seu Studio de Conteúdo.</p>
         </div>
         {proximosNaoGravados > 0 && (
           <Link href="/calendario"
-            className="flex items-center gap-2 text-xs bg-amber-50 border border-amber-200 text-amber-700 px-3 py-2 rounded-lg hover:bg-amber-100 transition-colors font-medium">
-            <AlertCircle size={13} className="text-amber-500" />
-            {proximosNaoGravados} conteúdo{proximosNaoGravados > 1 ? "s" : ""} agendado{proximosNaoGravados > 1 ? "s" : ""} nos próximos 2 dias sem gravação
+            className="flex items-center gap-2 text-xs bg-amber-50 border border-amber-200 text-amber-700 px-3 py-2 rounded-lg hover:bg-amber-100 transition-colors font-medium shrink-0">
+            <AlertCircle size={13} className="text-amber-500 shrink-0" />
+            <span className="hidden sm:inline">{proximosNaoGravados} conteúdo{proximosNaoGravados > 1 ? "s" : ""} agendado{proximosNaoGravados > 1 ? "s" : ""} nos próximos 2 dias sem gravação</span>
+            <span className="sm:hidden">{proximosNaoGravados} sem gravação</span>
           </Link>
         )}
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {stats.map(({ label, value, icon: Icon, href, cor }) => (
-          <Link key={label} href={href} className="group block border border-gray-100 rounded-xl p-4 hover:border-gray-300 transition-colors bg-white">
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${cor}`}>
-              <Icon size={18} />
+          <Link key={label} href={href} className="group block border border-gray-100 rounded-xl p-3 md:p-4 hover:border-gray-300 transition-colors bg-white">
+            <div className={`w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center mb-2 md:mb-3 ${cor}`}>
+              <Icon size={16} />
             </div>
-            <div className="text-2xl font-bold text-gray-900">{value}</div>
+            <div className="text-xl md:text-2xl font-bold text-gray-900">{value}</div>
             <div className="text-xs text-gray-500 mt-0.5">{label}</div>
           </Link>
         ))}
       </div>
 
       {/* Metas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
         {/* Meta receita */}
         <div className="bg-gray-900 text-white rounded-xl p-5">
           <div className="flex items-start justify-between mb-1">
@@ -117,15 +118,18 @@ export default async function Dashboard() {
       </div>
 
       {/* Ações rápidas */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <Link href="/temas" className="flex items-center gap-3 p-4 rounded-xl border border-dashed border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-colors text-sm text-gray-600">
-          <Lightbulb size={16} /> Criar novo tema
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <Link href="/temas" className="flex flex-col items-center gap-2 p-3 md:p-4 rounded-xl border border-dashed border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-colors text-center">
+          <Lightbulb size={18} className="text-gray-400" />
+          <span className="text-xs text-gray-600 leading-tight">Novo tema</span>
         </Link>
-        <Link href="/roteiros" className="flex items-center gap-3 p-4 rounded-xl border border-dashed border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-colors text-sm text-gray-600">
-          <BookOpen size={16} /> Gerar roteiro
+        <Link href="/roteiros" className="flex flex-col items-center gap-2 p-3 md:p-4 rounded-xl border border-dashed border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-colors text-center">
+          <BookOpen size={18} className="text-gray-400" />
+          <span className="text-xs text-gray-600 leading-tight">Roteiro</span>
         </Link>
-        <Link href="/calendario" className="flex items-center gap-3 p-4 rounded-xl border border-dashed border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-colors text-sm text-gray-600">
-          <CalendarDays size={16} /> Abrir calendário
+        <Link href="/calendario" className="flex flex-col items-center gap-2 p-3 md:p-4 rounded-xl border border-dashed border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-colors text-center">
+          <CalendarDays size={18} className="text-gray-400" />
+          <span className="text-xs text-gray-600 leading-tight">Calendário</span>
         </Link>
       </div>
 

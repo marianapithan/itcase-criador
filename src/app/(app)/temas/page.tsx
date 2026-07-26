@@ -100,10 +100,10 @@ export default function TemasPage() {
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 md:p-8 max-w-4xl mx-auto">
+      <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Temas & Microtemas</h1>
+          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Temas & Microtemas</h1>
           <p className="text-gray-500 text-sm mt-0.5">Crie e organize os assuntos do seu conteúdo</p>
         </div>
       </div>
@@ -114,12 +114,12 @@ export default function TemasPage() {
           <Sparkles size={15} className="text-gray-600" />
           <span className="text-sm font-medium text-gray-800">Gerar temas com IA</span>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && gerarTemas()}
-            placeholder="Ex: conteúdo para a semana do consumidor, dicas de iPhone, histórias de clientes..."
+            placeholder="Ex: conteúdo para a semana do consumidor, dicas de iPhone..."
             className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-400"
           />
           <button

@@ -217,10 +217,12 @@ export default function RoteirosPage() {
 
   const isGeradoIA = selecionado?.status === "GERADO_IA" || selecionado?.status === "ROTEIRO_PRONTO";
 
+  const painelDetalhe = selecionado !== null || criandoNovo;
+
   return (
     <div className="flex h-full">
-      {/* Sidebar */}
-      <div className="w-60 shrink-0 border-r border-gray-100 flex flex-col">
+      {/* Sidebar — visível no mobile só quando nenhum item selecionado */}
+      <div className={`${painelDetalhe ? "hidden md:flex" : "flex"} w-full md:w-60 shrink-0 border-r border-gray-100 flex-col`}>
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-900">Roteiros</h2>
@@ -287,17 +289,27 @@ export default function RoteirosPage() {
       </div>
 
       {/* Painel principal */}
-      <div className="flex-1 overflow-y-auto">
+      <div className={`${!painelDetalhe ? "hidden md:flex" : "flex"} flex-1 flex-col overflow-y-auto`}>
+
+        {/* Botão voltar — só mobile, só quando em detalhe */}
+        {painelDetalhe && (
+          <button
+            onClick={() => { setSelecionado(null); setCriandoNovo(false); }}
+            className="md:hidden flex items-center gap-2 px-4 py-3 text-sm text-gray-500 border-b border-gray-100 hover:bg-gray-50"
+          >
+            <ChevronRight size={16} className="rotate-180" /> Voltar
+          </button>
+        )}
 
         {/* Novo roteiro */}
         {criandoNovo && (
-          <div className="p-8 max-w-3xl">
+          <div className="p-4 md:p-8 max-w-3xl">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Novo roteiro</h2>
                 <p className="text-sm text-gray-500 mt-0.5">Escolha o modelo de conteúdo que a IA vai usar</p>
               </div>
-              <button onClick={() => setCriandoNovo(false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400"><X size={16} /></button>
+              <button onClick={() => setCriandoNovo(false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hidden md:block"><X size={16} /></button>
             </div>
 
             <div className="flex gap-3 mb-6">
@@ -355,7 +367,7 @@ export default function RoteirosPage() {
 
         {/* Visualizar roteiro selecionado */}
         {selecionado && !criandoNovo && (
-          <div className="p-8 max-w-3xl">
+          <div className="p-4 md:p-8 max-w-3xl">
             {/* Header */}
             <div className="flex items-start justify-between mb-5">
               <div className="flex-1 min-w-0">

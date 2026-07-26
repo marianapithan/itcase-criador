@@ -107,8 +107,8 @@ export default function BibliotecaPage() {
   }
 
   return (
-    <div className="p-6 max-w-full">
-      <div className="mb-5 flex items-end justify-between">
+    <div className="p-4 md:p-6 max-w-full">
+      <div className="mb-4 flex items-end justify-between">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Biblioteca</h1>
           <p className="text-gray-400 text-xs mt-0.5">{filtrados.length} conteúdo{filtrados.length !== 1 ? "s" : ""}{temFiltro ? " filtrados" : ""}</p>
@@ -194,8 +194,8 @@ export default function BibliotecaPage() {
       )}
 
       {/* Tabela */}
-      <div className="border border-gray-100 rounded-xl overflow-hidden bg-white">
-        <table className="w-full text-xs">
+      <div className="border border-gray-100 rounded-xl overflow-hidden bg-white overflow-x-auto">
+        <table className="w-full text-xs min-w-[700px]">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100">
               <th className="px-3 py-2.5 w-8">

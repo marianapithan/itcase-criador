@@ -38,3 +38,19 @@ body {
 ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
 
 textarea { resize: vertical; }
+
+/* Safe area para iOS (barra home no iPhone) */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Padding inferior do main para não ficar atrás do BottomNav + safe area iOS */
+@media (max-width: 767px) {
+  .mobile-main-pb {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
