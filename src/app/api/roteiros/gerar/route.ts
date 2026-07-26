@@ -30,7 +30,7 @@ function parsearResposta(texto: string): { roteiro: string; legenda: string; obj
 }
 
 export async function POST(req: NextRequest) {
-  const { titulo, formato, temaId, instrucao, frameworkNome, frameworkPrompt } = await req.json();
+  const { titulo, formato, temaId, instrucao, frameworkNome, frameworkPrompt, conteudoId } = await req.json();
 
   let contextoTema = "";
   if (temaId) {
@@ -77,20 +77,33 @@ Para etapaFunil use EXATAMENTE: TOPO (consciência/alcance), MEIO (engajamento/e
 
   const parsed = parsearResposta(resultado.conteudo);
 
-  const conteudo = await prisma.conteudo.create({
-    data: {
-      titulo,
-      formato,
-      roteiro: parsed.roteiro,
-      legenda: parsed.legenda || null,
-      objetivo: parsed.objetivo || null,
-      etapaFunil: parsed.etapaFunil || "TOPO",
-      temaId: temaId || undefined,
-      status: "GERADO_IA",
-      providerUsado: resultado.provedor,
-      modeloUsado: resultado.modelo,
-    },
-  });
+  const conteudo = conteudoId
+    ? await prisma.conteudo.update({
+        where: { id: conteudoId },
+        data: {
+          roteiro: parsed.roteiro,
+          legenda: parsed.legenda || null,
+          objetivo: parsed.objetivo || null,
+          etapaFunil: parsed.etapaFunil || "TOPO",
+          status: "GERADO_IA",
+          providerUsado: resultado.provedor,
+          modeloUsado: resultado.modelo,
+        },
+      })
+    : await prisma.conteudo.create({
+        data: {
+          titulo,
+          formato,
+          roteiro: parsed.roteiro,
+          legenda: parsed.legenda || null,
+          objetivo: parsed.objetivo || null,
+          etapaFunil: parsed.etapaFunil || "TOPO",
+          temaId: temaId || undefined,
+          status: "GERADO_IA",
+          providerUsado: resultado.provedor,
+          modeloUsado: resultado.modelo,
+        },
+      });
 
-  return NextResponse.json(conteudo, { status: 201 });
+  return NextResponse.json(conteudo, { status: conteudoId ? 200 : 201 });
 }

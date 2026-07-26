@@ -71,6 +71,11 @@ export default function RoteirosPage() {
   const [instrucaoMelhoria, setInstrucaoMelhoria] = useState("");
   const [mostrarVersaoAnterior, setMostrarVersaoAnterior] = useState(false);
   const [form, setForm] = useState({ titulo: "", formato: "REELS", temaId: "", instrucao: "", framework: "" });
+  const [modoNovo, setModoNovo] = useState<"unico" | "lote">("unico");
+  const [loteForm, setLoteForm] = useState({ prompt: "", quantidade: 7, temaId: "" });
+  const [gerandoLote, setGerandoLote] = useState(false);
+  const [frameworkIdeia, setFrameworkIdeia] = useState("");
+  const [gerandoRoteiroIdeia, setGerandoRoteiroIdeia] = useState(false);
 
   const frameworkSelecionado = FRAMEWORKS.find((f) => f.id === form.framework);
   const podeGerar = form.titulo.trim() && form.framework;
@@ -111,6 +116,53 @@ export default function RoteirosPage() {
       setForm({ titulo: "", formato: "REELS", temaId: "", instrucao: "", framework: "" });
     } finally {
       setGerando(false);
+    }
+  }
+
+  async function criarLote() {
+    if (!loteForm.prompt.trim()) return;
+    setGerandoLote(true);
+    try {
+      const res = await fetch("/api/roteiros/gerar-lote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(loteForm),
+      });
+      const data = await res.json();
+      if (data.erro) { alert(data.erro); return; }
+      await carregar();
+      setCriandoNovo(false);
+      setLoteForm({ prompt: "", quantidade: 7, temaId: "" });
+      setModoNovo("unico");
+    } finally {
+      setGerandoLote(false);
+    }
+  }
+
+  async function gerarRoteiroParaIdeia() {
+    if (!selecionado || !frameworkIdeia) return;
+    const fw = FRAMEWORKS.find((f) => f.id === frameworkIdeia);
+    if (!fw) return;
+    setGerandoRoteiroIdeia(true);
+    try {
+      const res = await fetch("/api/roteiros/gerar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conteudoId: selecionado.id,
+          titulo: selecionado.titulo,
+          formato: selecionado.formato,
+          frameworkNome: fw.nome,
+          frameworkPrompt: fw.prompt,
+        }),
+      });
+      const data = await res.json();
+      if (data.erro) { alert(data.erro); return; }
+      setSelecionado(data);
+      setFrameworkIdeia("");
+      await carregar();
+    } finally {
+      setGerandoRoteiroIdeia(false);
     }
   }
 
@@ -304,64 +356,130 @@ export default function RoteirosPage() {
         {/* Novo roteiro */}
         {criandoNovo && (
           <div className="p-4 md:p-8 max-w-3xl">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Novo roteiro</h2>
-                <p className="text-sm text-gray-500 mt-0.5">Escolha o modelo de conteúdo que a IA vai usar</p>
+                <h2 className="text-lg font-semibold text-gray-900">Novo conteúdo</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Crie um roteiro ou gere várias ideias de uma vez</p>
               </div>
               <button onClick={() => setCriandoNovo(false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hidden md:block"><X size={16} /></button>
             </div>
 
-            <div className="flex gap-3 mb-6">
-              <input
-                value={form.titulo}
-                onChange={(e) => setForm((p) => ({ ...p, titulo: e.target.value }))}
-                placeholder="Título do conteúdo"
-                className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-400"
-              />
-              <select value={form.formato} onChange={(e) => setForm((p) => ({ ...p, formato: e.target.value }))} className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none bg-white">
-                {FORMATOS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-              </select>
-              {temas.length > 0 && (
-                <select value={form.temaId} onChange={(e) => setForm((p) => ({ ...p, temaId: e.target.value }))} className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none bg-white">
-                  <option value="">Sem tema</option>
-                  {temas.map((t) => <option key={t.id} value={t.id}>{t.titulo}</option>)}
-                </select>
-              )}
+            {/* Toggle modo */}
+            <div className="flex bg-gray-100 rounded-lg p-0.5 mb-6">
+              <button onClick={() => setModoNovo("unico")}
+                className={`flex-1 py-2 text-xs font-medium rounded-md transition-all ${modoNovo === "unico" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                1 conteúdo
+              </button>
+              <button onClick={() => setModoNovo("lote")}
+                className={`flex-1 py-2 text-xs font-medium rounded-md transition-all ${modoNovo === "lote" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                Várias ideias
+              </button>
             </div>
 
-            <div className="mb-2">
-              <div className="text-xs font-medium text-gray-500 mb-3 uppercase tracking-wide">Modelo de conteúdo</div>
-              <div className="grid grid-cols-2 gap-3">
-                {FRAMEWORKS.map((fw) => {
-                  const ativo = form.framework === fw.id;
-                  return (
-                    <button key={fw.id} onClick={() => setForm((p) => ({ ...p, framework: fw.id }))}
-                      className={`text-left p-4 rounded-xl border-2 transition-all ${ativo ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200 bg-white hover:border-gray-400 hover:shadow-sm"}`}>
-                      <div className="flex items-start justify-between mb-2">
-                        <span className="text-lg">{fw.emoji}</span>
-                        <span className={`text-[11px] font-semibold ${ativo ? "text-gray-400" : CATEGORIA_COR[fw.categoria]}`}>{fw.categoria}</span>
-                      </div>
-                      <div className={`font-semibold text-sm mb-1 ${ativo ? "text-white" : "text-gray-900"}`}>{fw.nome}</div>
-                      <div className={`text-[12px] leading-snug ${ativo ? "text-gray-300" : "text-gray-500"}`}>{fw.descricao}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            {/* Modo: 1 conteúdo */}
+            {modoNovo === "unico" && (
+              <>
+                <div className="flex gap-3 mb-6">
+                  <input
+                    value={form.titulo}
+                    onChange={(e) => setForm((p) => ({ ...p, titulo: e.target.value }))}
+                    placeholder="Título do conteúdo"
+                    className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-400"
+                  />
+                  <select value={form.formato} onChange={(e) => setForm((p) => ({ ...p, formato: e.target.value }))} className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none bg-white">
+                    {FORMATOS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+                  </select>
+                  {temas.length > 0 && (
+                    <select value={form.temaId} onChange={(e) => setForm((p) => ({ ...p, temaId: e.target.value }))} className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none bg-white">
+                      <option value="">Sem tema</option>
+                      {temas.map((t) => <option key={t.id} value={t.id}>{t.titulo}</option>)}
+                    </select>
+                  )}
+                </div>
 
-            <div className="mt-5 mb-5">
-              <input value={form.instrucao} onChange={(e) => setForm((p) => ({ ...p, instrucao: e.target.value }))}
-                placeholder="Instrução extra (opcional) — ex: foco em seminovos, tom mais descontraído..."
-                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-400" />
-            </div>
+                <div className="mb-2">
+                  <div className="text-xs font-medium text-gray-500 mb-3 uppercase tracking-wide">Modelo de conteúdo</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {FRAMEWORKS.map((fw) => {
+                      const ativo = form.framework === fw.id;
+                      return (
+                        <button key={fw.id} onClick={() => setForm((p) => ({ ...p, framework: fw.id }))}
+                          className={`text-left p-4 rounded-xl border-2 transition-all ${ativo ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200 bg-white hover:border-gray-400 hover:shadow-sm"}`}>
+                          <div className="flex items-start justify-between mb-2">
+                            <span className="text-lg">{fw.emoji}</span>
+                            <span className={`text-[11px] font-semibold ${ativo ? "text-gray-400" : CATEGORIA_COR[fw.categoria]}`}>{fw.categoria}</span>
+                          </div>
+                          <div className={`font-semibold text-sm mb-1 ${ativo ? "text-white" : "text-gray-900"}`}>{fw.nome}</div>
+                          <div className={`text-[12px] leading-snug ${ativo ? "text-gray-300" : "text-gray-500"}`}>{fw.descricao}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
-            <button onClick={criarRoteiro} disabled={gerando || !podeGerar}
-              className="w-full text-sm bg-gray-900 text-white py-3 rounded-xl hover:bg-gray-700 disabled:opacity-40 transition-colors flex items-center justify-center gap-2 font-medium">
-              <Sparkles size={14} />
-              {gerando ? "Gerando roteiro…" : !form.titulo.trim() ? "Preencha o título para gerar" : !form.framework ? "Escolha um modelo acima" : `Gerar com ${frameworkSelecionado?.nome}`}
-              {podeGerar && !gerando && <ChevronRight size={14} />}
-            </button>
+                <div className="mt-5 mb-5">
+                  <input value={form.instrucao} onChange={(e) => setForm((p) => ({ ...p, instrucao: e.target.value }))}
+                    placeholder="Instrução extra (opcional) — ex: foco em seminovos, tom mais descontraído..."
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-400" />
+                </div>
+
+                <button onClick={criarRoteiro} disabled={gerando || !podeGerar}
+                  className="w-full text-sm bg-gray-900 text-white py-3 rounded-xl hover:bg-gray-700 disabled:opacity-40 transition-colors flex items-center justify-center gap-2 font-medium">
+                  <Sparkles size={14} />
+                  {gerando ? "Gerando roteiro…" : !form.titulo.trim() ? "Preencha o título para gerar" : !form.framework ? "Escolha um modelo acima" : `Gerar com ${frameworkSelecionado?.nome}`}
+                  {podeGerar && !gerando && <ChevronRight size={14} />}
+                </button>
+              </>
+            )}
+
+            {/* Modo: várias ideias */}
+            {modoNovo === "lote" && (
+              <>
+                <div className="mb-4">
+                  <div className="text-xs text-gray-500 mb-1.5">Sobre o que quer criar conteúdo?</div>
+                  <textarea
+                    value={loteForm.prompt}
+                    onChange={(e) => setLoteForm((p) => ({ ...p, prompt: e.target.value }))}
+                    placeholder="Ex: dicas de como cuidar da capa do celular, semana do consumidor, promoção de volta às aulas..."
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-gray-400 h-24 resize-none"
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <div className="text-xs text-gray-500 mb-2">Quantas ideias?</div>
+                  <div className="flex gap-2">
+                    {[3, 5, 7, 10].map((q) => (
+                      <button key={q} onClick={() => setLoteForm((p) => ({ ...p, quantidade: q }))}
+                        className={`flex-1 py-2 text-sm rounded-lg border font-medium transition-all ${loteForm.quantidade === q ? "bg-gray-900 text-white border-gray-900" : "border-gray-200 text-gray-600 hover:border-gray-400"}`}>
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {temas.length > 0 && (
+                  <div className="mb-4">
+                    <div className="text-xs text-gray-500 mb-1.5">Tema (opcional)</div>
+                    <select value={loteForm.temaId} onChange={(e) => setLoteForm((p) => ({ ...p, temaId: e.target.value }))}
+                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none bg-white">
+                      <option value="">Sem tema</option>
+                      {temas.map((t) => <option key={t.id} value={t.id}>{t.titulo}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-4 text-xs text-blue-700">
+                  A IA vai gerar {loteForm.quantidade} ideias com títulos e formatos variados. Depois você clica em cada ideia para gerar o roteiro completo.
+                </div>
+
+                <button onClick={criarLote} disabled={gerandoLote || !loteForm.prompt.trim()}
+                  className="w-full text-sm bg-gray-900 text-white py-3 rounded-xl hover:bg-gray-700 disabled:opacity-40 transition-colors flex items-center justify-center gap-2 font-medium">
+                  <Sparkles size={14} />
+                  {gerandoLote ? `Gerando ${loteForm.quantidade} ideias…` : `Gerar ${loteForm.quantidade} ideias`}
+                  {!gerandoLote && loteForm.prompt.trim() && <ChevronRight size={14} />}
+                </button>
+              </>
+            )}
           </div>
         )}
 
@@ -384,6 +502,32 @@ export default function RoteirosPage() {
                 {selecionado.objetivo && <p className="text-sm text-gray-500 mt-1">{selecionado.objetivo}</p>}
               </div>
             </div>
+
+            {/* Gerar roteiro para IDEIA sem roteiro */}
+            {selecionado.status === "IDEIA" && !selecionado.roteiro && (
+              <div className="mb-5 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                <p className="text-sm font-medium text-gray-800 mb-0.5">Gerar roteiro para esta ideia</p>
+                <p className="text-xs text-gray-500 mb-3">Escolha o modelo que a IA vai usar para criar o roteiro completo.</p>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  {FRAMEWORKS.map((fw) => {
+                    const ativo = frameworkIdeia === fw.id;
+                    return (
+                      <button key={fw.id} onClick={() => setFrameworkIdeia(fw.id)}
+                        className={`text-left p-3 rounded-xl border-2 transition-all ${ativo ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200 bg-white hover:border-gray-300"}`}>
+                        <div className="text-base mb-1">{fw.emoji}</div>
+                        <div className={`font-semibold text-xs mb-0.5 ${ativo ? "text-white" : "text-gray-900"}`}>{fw.nome}</div>
+                        <div className={`text-[11px] leading-snug ${ativo ? "text-gray-300" : "text-gray-400"}`}>{fw.descricao}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <button onClick={gerarRoteiroParaIdeia} disabled={gerandoRoteiroIdeia || !frameworkIdeia}
+                  className="w-full text-sm bg-gray-900 text-white py-2.5 rounded-xl hover:bg-gray-700 disabled:opacity-40 flex items-center justify-center gap-2 font-medium">
+                  <Sparkles size={13} />
+                  {gerandoRoteiroIdeia ? "Gerando roteiro…" : frameworkIdeia ? `Gerar com ${FRAMEWORKS.find((f) => f.id === frameworkIdeia)?.nome}` : "Escolha um modelo acima"}
+                </button>
+              </div>
+            )}
 
             {/* Botões de ação para GERADO_IA */}
             {isGeradoIA && telaAcao === null && (
