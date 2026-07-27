@@ -233,6 +233,7 @@ export default function PersonaPage() {
   const [tabDocumento, setTabDocumento] = useState(0);
   const [estadoGeracaoIdx, setEstadoGeracaoIdx] = useState(0);
   const [estudo, setEstudo] = useState<Record<string, string>>({});
+  const [erroGeracao, setErroGeracao] = useState<string | null>(null);
 
   // Carregar estudo existente
   const carregar = useCallback(async () => {
@@ -283,17 +284,37 @@ export default function PersonaPage() {
     await salvarRascunho();
     setFase("gerando");
     setEstadoGeracaoIdx(0);
+    setErroGeracao(null);
     try {
-      const res = await fetch("/api/estrategia/gerar", {
+      // Fase 1: empresa, persona, jornada, mercado, posicionamento (~60s)
+      const res1 = await fetch("/api/estrategia/gerar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ respostas }),
+        body: JSON.stringify({ respostas, fase: 1 }),
       });
-      if (!res.ok) throw new Error("Erro na geração");
-      const data = await res.json();
+      if (!res1.ok) {
+        const body = await res1.json().catch(() => ({}));
+        throw new Error(body?.erro ?? `Erro ${res1.status}`);
+      }
+
+      // Avança animação para a fase do mapa
+      setEstadoGeracaoIdx(6);
+
+      // Fase 2: mapa de comunicação (~60s)
+      const res2 = await fetch("/api/estrategia/gerar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fase: 2 }),
+      });
+      if (!res2.ok) {
+        const body = await res2.json().catch(() => ({}));
+        throw new Error(body?.erro ?? `Erro ${res2.status}`);
+      }
+      const data = await res2.json();
       setEstudo(data);
       setFase("completo");
-    } catch {
+    } catch (err) {
+      setErroGeracao(err instanceof Error ? err.message : "Erro desconhecido. Tente novamente.");
       setFase("entrevista");
     }
   }
@@ -446,8 +467,19 @@ export default function PersonaPage() {
             ))}
           </div>
 
+          {/* Erro de geração */}
+          {erroGeracao && (
+            <div className="mt-6 p-4 rounded-xl flex gap-3" style={{ background: "rgba(240,96,128,0.1)", border: "1px solid rgba(240,96,128,0.3)" }}>
+              <AlertCircle size={16} style={{ color: "#f06080" }} className="shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-semibold mb-0.5" style={{ color: "#f06080" }}>Falha ao gerar o documento</p>
+                <p className="text-xs" style={{ color: "var(--muted)" }}>{erroGeracao}</p>
+              </div>
+            </div>
+          )}
+
           {/* Navegação */}
-          <div className="flex gap-3 mt-10">
+          <div className="flex gap-3 mt-6">
             {secaoAtual > 0 && (
               <button
                 onClick={secaoAnterior}
