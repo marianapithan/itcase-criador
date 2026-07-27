@@ -242,12 +242,12 @@ export default function PersonaPage() {
     const data = await res.json();
     if (!data || data.status === "novo") { setFase("novo"); return; }
     setEstudo(data);
+    // Sempre carrega respostas salvas para que "Refazer" não abra vazio
+    const r = parse<Respostas>(data.respostas, {});
+    setRespostas(r);
     if (data.status === "completo") setFase("completo");
-    else if (data.status === "rascunho") {
-      const r = parse<Respostas>(data.respostas, {});
-      setRespostas(r);
-      setFase("entrevista");
-    } else setFase("novo");
+    else if (data.status === "rascunho") setFase("entrevista");
+    else setFase("novo");
   }, []);
 
   useEffect(() => { carregar(); }, [carregar]);
@@ -563,6 +563,41 @@ export default function PersonaPage() {
   const mercado = parse<Record<string, unknown>>(estudo.secMercado, {});
   const posicionamento = parse<Record<string, unknown>>(estudo.secPosicionamento, {});
   const mapa = parse<Record<string, string[]>>(estudo.secMapa, {});
+
+  // Detecta documento gerado mas sem conteúdo (JSON parse falhou anteriormente)
+  const documentoVazio = !empresa.promessa && !persona.nome && !posicionamento.big_idea;
+  if (documentoVazio) {
+    return (
+      <div className="min-h-full flex items-center justify-center px-4" style={{ background: "var(--background)" }}>
+        <div className="max-w-md w-full text-center">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6" style={{ background: "rgba(240,96,128,0.1)", border: "1px solid rgba(240,96,128,0.2)" }}>
+            <AlertCircle size={28} style={{ color: "#f06080" }} />
+          </div>
+          <h2 className="text-xl font-bold mb-2" style={{ color: "var(--foreground)", fontFamily: "var(--font-syne, inherit)" }}>
+            Documento gerado sem conteúdo
+          </h2>
+          <p className="text-sm mb-6" style={{ color: "var(--muted)" }}>
+            A IA retornou um JSON incompleto na última geração. Suas respostas estão salvas — basta gerar novamente.
+          </p>
+          <button
+            onClick={gerarDocumento}
+            className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all active:scale-[0.98] mb-3"
+            style={{ background: "#c8d92a", color: "#0d2b1e", fontFamily: "var(--font-syne, inherit)", boxShadow: "0 0 32px rgba(200,217,42,0.3)" }}
+          >
+            <Sparkles size={20} />
+            Gerar novamente
+          </button>
+          <button
+            onClick={() => { setFase("entrevista"); setSecaoAtual(0); }}
+            className="w-full py-3 rounded-2xl text-sm transition-all"
+            style={{ background: "var(--card-bg)", color: "var(--muted)", border: "1px solid var(--card-border)" }}
+          >
+            Revisar respostas antes de gerar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const TABS_DOC = [
     { label: "A Empresa", icon: Building2, cor: "#c8d92a" },

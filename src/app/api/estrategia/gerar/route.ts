@@ -155,7 +155,7 @@ Gere o documento estratégico completo em JSON:
   }
 }`.trim();
 
-  return chamarIA({ funcionalidade: "estrategia-secoes", sistema: SISTEMA, prompt, maxTokens: 1500 });
+  return chamarIA({ funcionalidade: "estrategia-secoes", sistema: SISTEMA, prompt, maxTokens: 2500 });
 }
 
 // ── FASE 2: Mapa de comunicação (10 categorias × 15 itens = 150 insights) ───
@@ -208,7 +208,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: `Falha na IA: ${r1.erro}` }, { status: 500 });
     }
 
-    const secoes = extrairJSON(r1.conteudo) ?? {};
+    const secoes = extrairJSON(r1.conteudo);
+    if (!secoes) {
+      return NextResponse.json(
+        { erro: `A IA retornou um JSON inválido ou incompleto. Tente novamente — pode ser instabilidade da API.` },
+        { status: 500 }
+      );
+    }
 
     await prisma.estudoEstrategico.upsert({
       where: { id: "default" },
