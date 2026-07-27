@@ -12,30 +12,36 @@ export const runtime = "nodejs";
 
 // ── Schemas JSON para generateObject ─────────────────────────────────────────
 
-const SCHEMA_EMPRESA_PERSONA = jsonSchema<{
-  empresa: Record<string, unknown>;
-  persona: Record<string, unknown>;
-}>({
+const SCHEMA_EMPRESA = jsonSchema<{ empresa: Record<string, unknown> }>({
   type: "object",
   properties: {
     empresa: {
       type: "object",
       properties: {
-        produtos:               { type: "string" },
-        como_vende:             { type: "string" },
-        ticket:                 { type: "string" },
-        produto_entrada:        { type: "string" },
-        produto_premium:        { type: "string" },
-        diferenciais:           { type: "array", items: { type: "string" } },
-        posicionamento_atual:   { type: "string" },
-        posicionamento_desejado:{ type: "string" },
-        valores:                { type: "array", items: { type: "string" } },
-        personalidade:          { type: "string" },
-        promessa:               { type: "string" },
-        transformacao:          { type: "string" },
+        produtos:                { type: "string" },
+        como_vende:              { type: "string" },
+        ticket:                  { type: "string" },
+        produto_entrada:         { type: "string" },
+        produto_premium:         { type: "string" },
+        diferenciais:            { type: "array", items: { type: "string" } },
+        posicionamento_atual:    { type: "string" },
+        posicionamento_desejado: { type: "string" },
+        valores:                 { type: "array", items: { type: "string" } },
+        personalidade:           { type: "string" },
+        promessa:                { type: "string" },
+        transformacao:           { type: "string" },
       },
-      required: ["produtos", "promessa", "transformacao"],
+      required: ["produtos", "como_vende", "ticket", "produto_entrada", "produto_premium",
+                 "diferenciais", "posicionamento_atual", "posicionamento_desejado",
+                 "valores", "personalidade", "promessa", "transformacao"],
     },
+  },
+  required: ["empresa"],
+});
+
+const SCHEMA_PERSONA = jsonSchema<{ persona: Record<string, unknown> }>({
+  type: "object",
+  properties: {
     persona: {
       type: "object",
       properties: {
@@ -63,17 +69,18 @@ const SCHEMA_EMPRESA_PERSONA = jsonSchema<{
         faz_confiar:           { type: "array", items: { type: "string" } },
         faz_desistir:          { type: "array", items: { type: "string" } },
       },
-      required: ["nome", "perfil"],
+      required: ["nome", "perfil", "rotina", "objetivos", "sonhos", "medos",
+                 "frustracoes", "dores_emocionais", "dores_financeiras", "dores_praticas",
+                 "desejos_conscientes", "desejos_inconscientes", "gatilhos_compra",
+                 "valores", "linguagem", "palavras_usa", "palavras_odeia",
+                 "influenciadores", "conteudo_consome", "pesquisa_google",
+                 "salva_instagram", "faz_confiar", "faz_desistir"],
     },
   },
-  required: ["empresa", "persona"],
+  required: ["persona"],
 });
 
-const SCHEMA_JORNADA_MERCADO_POS = jsonSchema<{
-  jornada: Record<string, unknown>;
-  mercado: Record<string, unknown>;
-  posicionamento: Record<string, unknown>;
-}>({
+const SCHEMA_JORNADA = jsonSchema<{ jornada: Record<string, unknown> }>({
   type: "object",
   properties: {
     jornada: {
@@ -84,11 +91,12 @@ const SCHEMA_JORNADA_MERCADO_POS = jsonSchema<{
           items: {
             type: "object",
             properties: {
-              nome:     { type: "string" },
-              descricao:{ type: "string" },
-              emocao:   { type: "string" },
-              acao:     { type: "string" },
+              nome:      { type: "string" },
+              descricao: { type: "string" },
+              emocao:    { type: "string" },
+              acao:      { type: "string" },
             },
+            required: ["nome", "descricao", "emocao", "acao"],
           },
         },
         tenta_sozinha:       { type: "string" },
@@ -96,8 +104,18 @@ const SCHEMA_JORNADA_MERCADO_POS = jsonSchema<{
         onde_trava:          { type: "string" },
         o_que_falta:         { type: "string" },
       },
-      required: ["etapas", "onde_trava"],
+      required: ["etapas", "tenta_sozinha", "solucoes_frustradas", "onde_trava", "o_que_falta"],
     },
+  },
+  required: ["jornada"],
+});
+
+const SCHEMA_MERCADO_POS = jsonSchema<{
+  mercado: Record<string, unknown>;
+  posicionamento: Record<string, unknown>;
+}>({
+  type: "object",
+  properties: {
     mercado: {
       type: "object",
       properties: {
@@ -106,38 +124,42 @@ const SCHEMA_JORNADA_MERCADO_POS = jsonSchema<{
           items: {
             type: "object",
             properties: {
-              nome:         { type: "string" },
-              como_comunica:{ type: "string" },
-              promessa:     { type: "string" },
-              fraqueza:     { type: "string" },
+              nome:          { type: "string" },
+              como_comunica: { type: "string" },
+              promessa:      { type: "string" },
+              fraqueza:      { type: "string" },
             },
+            required: ["nome", "como_comunica", "promessa", "fraqueza"],
           },
         },
         oportunidades:   { type: "array", items: { type: "string" } },
         padroes_quebrar: { type: "array", items: { type: "string" } },
         tendencias:      { type: "array", items: { type: "string" } },
       },
-      required: ["concorrentes", "oportunidades"],
+      required: ["concorrentes", "oportunidades", "padroes_quebrar", "tendencias"],
     },
     posicionamento: {
       type: "object",
       properties: {
-        arquetipo:             { type: "string" },
-        tom_voz:               { type: "string" },
-        personalidade:         { type: "string" },
-        pilares_editoriais:    { type: "array", items: { type: "string" } },
-        promessa_central:      { type: "string" },
-        big_idea:              { type: "string" },
-        mecanismo_unico:       { type: "string" },
+        arquetipo:              { type: "string" },
+        tom_voz:                { type: "string" },
+        personalidade:          { type: "string" },
+        pilares_editoriais:     { type: "array", items: { type: "string" } },
+        promessa_central:       { type: "string" },
+        big_idea:               { type: "string" },
+        mecanismo_unico:        { type: "string" },
         diferencial_competitivo:{ type: "string" },
-        crencas_construir:     { type: "array", items: { type: "string" } },
-        crencas_quebrar:       { type: "array", items: { type: "string" } },
-        inimigo_comum:         { type: "string" },
+        crencas_construir:      { type: "array", items: { type: "string" } },
+        crencas_quebrar:        { type: "array", items: { type: "string" } },
+        inimigo_comum:          { type: "string" },
       },
-      required: ["big_idea", "inimigo_comum"],
+      required: ["arquetipo", "tom_voz", "personalidade", "pilares_editoriais",
+                 "promessa_central", "big_idea", "mecanismo_unico",
+                 "diferencial_competitivo", "crencas_construir", "crencas_quebrar",
+                 "inimigo_comum"],
     },
   },
-  required: ["jornada", "mercado", "posicionamento"],
+  required: ["mercado", "posicionamento"],
 });
 
 // ── Obtém instância do modelo ativo ────────────────────────────────────────
@@ -210,7 +232,10 @@ export async function POST(req: NextRequest) {
   const fase: number = body.fase ?? 1;
   const R = (body.respostas ?? {}) as Record<string, string>;
 
-  // ── FASE 1: empresa + persona via generateObject ───────────────────────────
+  const SISTEMA_OBJ = "Você é um estrategista de marketing especializado em varejo premium. Seja direto e específico para este negócio. Máximo 20 palavras por string, 4 itens por array.";
+
+  // ── FASE 1a: empresa (12 campos, todos required) ───────────────────────────
+  // ── FASE 1b: persona (23 campos, todos required) ──────────────────────────
   if (fase === 1) {
     await garantirTabela();
     await prisma.estudoEstrategico.upsert({
@@ -220,119 +245,56 @@ export async function POST(req: NextRequest) {
     });
 
     let model;
-    try {
-      model = await obterModelo();
-    } catch (e) {
-      return NextResponse.json({ erro: String(e) }, { status: 500 });
-    }
+    try { model = await obterModelo(); }
+    catch (e) { return NextResponse.json({ erro: String(e) }, { status: 500 }); }
 
-    const prompt1 = `
-Empresa: ${CONFIG.nome} — varejo Apple, Londrina-PR
+    const baseEmpresa = `Empresa: ${CONFIG.nome} — varejo Apple, Londrina-PR\nProdutos: ${R.empresa_produtos || ""}\nComo vende: ${R.empresa_como_vende || ""}\nTicket: ${R.empresa_ticket || ""}\nDiferenciais: ${R.empresa_diferenciais || ""}\nPosicionamento: ${R.empresa_posicionamento || ""}\nValores/promessa: ${R.empresa_valores || ""}`;
 
-RESPOSTAS DA ENTREVISTA:
-Produtos: ${R.empresa_produtos || ""}
-Como vende: ${R.empresa_como_vende || ""}
-Ticket e produtos: ${R.empresa_ticket || ""}
-Diferenciais: ${R.empresa_diferenciais || ""}
-Posicionamento: ${R.empresa_posicionamento || ""}
-Valores e promessa: ${R.empresa_valores || ""}
-Perfil da persona: ${R.persona_perfil || ""}
-Rotina: ${R.persona_rotina || ""}
-Objetivos/medos/dores: ${R.persona_objetivos || ""}
-Confiança vs desistência: ${R.persona_confianca || ""}
-Linguagem digital: ${R.persona_linguagem || ""}
-Influenciadores: ${R.persona_influencia || ""}
-
-Gere a análise estratégica de empresa e persona com base nas respostas acima.
-Valores de string: máximo 20 palavras. Arrays: máximo 4 itens de até 10 palavras cada.`.trim();
+    const basePersona = `Empresa: ${CONFIG.nome} — varejo Apple, Londrina-PR\nPerfil: ${R.persona_perfil || ""}\nRotina: ${R.persona_rotina || ""}\nObjetivos/medos/dores: ${R.persona_objetivos || ""}\nConfiança vs desistência: ${R.persona_confianca || ""}\nLinguagem: ${R.persona_linguagem || ""}\nInfluenciadores: ${R.persona_influencia || ""}`;
 
     try {
-      const { object } = await generateObject({
-        model,
-        schema: SCHEMA_EMPRESA_PERSONA,
-        system: "Você é um estrategista de marketing especializado em varejo premium e branding. Seja direto e específico para este negócio.",
-        prompt: prompt1,
-        maxOutputTokens: 1500,
-      });
+      const [{ object: obj1 }, { object: obj2 }] = await Promise.all([
+        generateObject({ model, schema: SCHEMA_EMPRESA, system: SISTEMA_OBJ, prompt: baseEmpresa + "\n\nGere a análise estratégica da empresa.", maxOutputTokens: 600 }),
+        generateObject({ model, schema: SCHEMA_PERSONA, system: SISTEMA_OBJ, prompt: basePersona + "\n\nGere a análise completa da persona com nome fictício realista.", maxOutputTokens: 900 }),
+      ]);
 
       await prisma.estudoEstrategico.upsert({
         where: { id: "default" },
-        update: {
-          secEmpresa: JSON.stringify(object.empresa ?? {}),
-          secPersona: JSON.stringify(object.persona ?? {}),
-          status: "gerando",
-        },
-        create: {
-          id: "default",
-          respostas: JSON.stringify(R),
-          secEmpresa: JSON.stringify(object.empresa ?? {}),
-          secPersona: JSON.stringify(object.persona ?? {}),
-          status: "gerando",
-        },
+        update: { secEmpresa: JSON.stringify(obj1.empresa), secPersona: JSON.stringify(obj2.persona), status: "gerando" },
+        create: { id: "default", respostas: JSON.stringify(R), secEmpresa: JSON.stringify(obj1.empresa), secPersona: JSON.stringify(obj2.persona), status: "gerando" },
       });
 
       return NextResponse.json({ ok: true, fase: 1 });
     } catch (e) {
-      console.error("[estrategia-gerar fase1] generateObject falhou:", e);
+      console.error("[estrategia-gerar fase1]", e);
       return NextResponse.json({ erro: `Falha na fase 1: ${e instanceof Error ? e.message : String(e)}` }, { status: 500 });
     }
   }
 
-  // ── FASE 2: jornada + mercado + posicionamento via generateObject ─────────
+  // ── FASE 2a: jornada | FASE 2b: mercado + posicionamento ─────────────────
   if (fase === 2) {
     let model;
-    try {
-      model = await obterModelo();
-    } catch (e) {
-      return NextResponse.json({ erro: String(e) }, { status: 500 });
-    }
+    try { model = await obterModelo(); }
+    catch (e) { return NextResponse.json({ erro: String(e) }, { status: 500 }); }
 
-    const prompt2 = `
-Empresa: ${CONFIG.nome} — varejo Apple, Londrina-PR
-
-RESPOSTAS DA ENTREVISTA:
-Percepção do problema: ${R.jornada_percebe || ""}
-Soluções frustradas: ${R.jornada_trava || ""}
-Emoções na jornada: ${R.jornada_emocoes || ""}
-Concorrentes: ${R.mercado_concorrentes || ""}
-Oportunidades: ${R.mercado_oportunidades || ""}
-Tendências: ${R.mercado_tendencias || ""}
-Personalidade da marca: ${R.pos_personalidade || ""}
-Big Idea: ${R.pos_big_idea || ""}
-Crenças e inimigo: ${R.pos_crencas || ""}
-
-Gere jornada do cliente (5 etapas), análise de mercado e posicionamento estratégico.
-Valores de string: máximo 20 palavras. Arrays: máximo 4 itens.`.trim();
+    const baseJornada = `Empresa: ${CONFIG.nome}\nPercepção do problema: ${R.jornada_percebe || ""}\nSoluções frustradas: ${R.jornada_trava || ""}\nEmoções: ${R.jornada_emocoes || ""}`;
+    const baseMercadoPos = `Empresa: ${CONFIG.nome}\nConcorrentes: ${R.mercado_concorrentes || ""}\nOportunidades: ${R.mercado_oportunidades || ""}\nTendências: ${R.mercado_tendencias || ""}\nPersonalidade: ${R.pos_personalidade || ""}\nBig Idea: ${R.pos_big_idea || ""}\nCrenças/inimigo: ${R.pos_crencas || ""}`;
 
     try {
-      const { object } = await generateObject({
-        model,
-        schema: SCHEMA_JORNADA_MERCADO_POS,
-        system: "Você é um estrategista de marketing especializado em varejo premium e branding. Seja direto e específico para este negócio.",
-        prompt: prompt2,
-        maxOutputTokens: 1200,
-      });
+      const [{ object: obj3 }, { object: obj4 }] = await Promise.all([
+        generateObject({ model, schema: SCHEMA_JORNADA, system: SISTEMA_OBJ, prompt: baseJornada + "\n\nGere a jornada do cliente em 5 etapas.", maxOutputTokens: 600 }),
+        generateObject({ model, schema: SCHEMA_MERCADO_POS, system: SISTEMA_OBJ, prompt: baseMercadoPos + "\n\nGere análise de mercado e posicionamento estratégico.", maxOutputTokens: 700 }),
+      ]);
 
       await prisma.estudoEstrategico.upsert({
         where: { id: "default" },
-        update: {
-          secJornada: JSON.stringify(object.jornada ?? {}),
-          secMercado: JSON.stringify(object.mercado ?? {}),
-          secPosicionamento: JSON.stringify(object.posicionamento ?? {}),
-          status: "gerando",
-        },
-        create: {
-          id: "default",
-          secJornada: JSON.stringify(object.jornada ?? {}),
-          secMercado: JSON.stringify(object.mercado ?? {}),
-          secPosicionamento: JSON.stringify(object.posicionamento ?? {}),
-          status: "gerando",
-        },
+        update: { secJornada: JSON.stringify(obj3.jornada), secMercado: JSON.stringify(obj4.mercado), secPosicionamento: JSON.stringify(obj4.posicionamento), status: "gerando" },
+        create: { id: "default", secJornada: JSON.stringify(obj3.jornada), secMercado: JSON.stringify(obj4.mercado), secPosicionamento: JSON.stringify(obj4.posicionamento), status: "gerando" },
       });
 
       return NextResponse.json({ ok: true, fase: 2 });
     } catch (e) {
-      console.error("[estrategia-gerar fase2] generateObject falhou:", e);
+      console.error("[estrategia-gerar fase2]", e);
       return NextResponse.json({ erro: `Falha na fase 2: ${e instanceof Error ? e.message : String(e)}` }, { status: 500 });
     }
   }
