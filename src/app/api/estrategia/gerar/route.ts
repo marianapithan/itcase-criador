@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db/client";
 import { chamarIA } from "@/lib/ai/gateway";
 import { CONFIG } from "@/lib/config";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 export const runtime = "nodejs";
 
 const SISTEMA = "Você é um estrategista de marketing de elite especializado em varejo premium e branding. Retorne SOMENTE o objeto JSON pedido, sem markdown, sem explicação, sem texto fora do JSON.";
@@ -155,7 +155,7 @@ Gere o documento estratégico completo em JSON:
   }
 }`.trim();
 
-  return chamarIA({ funcionalidade: "estrategia-secoes", sistema: SISTEMA, prompt, maxTokens: 3000 });
+  return chamarIA({ funcionalidade: "estrategia-secoes", sistema: SISTEMA, prompt, maxTokens: 1500 });
 }
 
 // ── FASE 2: Mapa de comunicação (10 categorias × 15 itens = 150 insights) ───
@@ -167,35 +167,36 @@ Empresa: ${empresa}
 Persona: ${personaNome} — ${personaPerfil.slice(0, 150)}
 Setor: varejo Apple, Londrina-PR
 
-Gere um mapa de comunicação completo e específico. Cada item deve ser concreto e pronto para virar conteúdo.
-Gere EXATAMENTE 15 itens em cada categoria.
+Gere um mapa de comunicação específico e concreto. Cada item deve ser pronto para virar conteúdo.
+Gere EXATAMENTE 8 itens em cada categoria. Seja direto, sem texto extra.
 
 {
-  "dores": ["dor específica 1", "dor 2", "dor 3", "dor 4", "dor 5", "dor 6", "dor 7", "dor 8", "dor 9", "dor 10", "dor 11", "dor 12", "dor 13", "dor 14", "dor 15"],
-  "desejos": ["desejo 1",...15 itens],
-  "objecoes": ["objeção 1",...15 itens],
-  "crencas_limitantes": ["crença 1",...15 itens],
-  "gatilhos_mentais": ["gatilho: como aplicar 1",...15 itens],
-  "temas_conteudo": ["tema concreto 1",...15 itens],
-  "perguntas_frequentes": ["pergunta real 1",...15 itens],
-  "mitos": ["mito 1",...15 itens],
-  "erros": ["erro comum 1",...15 itens],
-  "oportunidades_conteudo": ["oportunidade 1",...15 itens]
+  "dores": ["dor específica 1", "dor 2", "dor 3", "dor 4", "dor 5", "dor 6", "dor 7", "dor 8"],
+  "desejos": ["desejo 1",...8 itens],
+  "objecoes": ["objeção 1",...8 itens],
+  "crencas_limitantes": ["crença 1",...8 itens],
+  "gatilhos_mentais": ["gatilho: como aplicar",...8 itens],
+  "temas_conteudo": ["tema concreto 1",...8 itens],
+  "perguntas_frequentes": ["pergunta real 1",...8 itens],
+  "mitos": ["mito do cliente 1",...8 itens],
+  "erros": ["erro comum 1",...8 itens],
+  "oportunidades_conteudo": ["oportunidade 1",...8 itens]
 }`.trim();
 
-  return chamarIA({ funcionalidade: "estrategia-mapa", sistema: SISTEMA, prompt, maxTokens: 3500 });
+  return chamarIA({ funcionalidade: "estrategia-mapa", sistema: SISTEMA, prompt, maxTokens: 1600 });
 }
 
 // ── Handler ──────────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  await garantirTabela();
   const body = await req.json();
   const fase: number = body.fase ?? 1;
   const R = (body.respostas ?? {}) as Record<string, string>;
 
   // ── FASE 1 ────────────────────────────────────────────────────────────────
   if (fase === 1) {
+    // Garante tabela e salva rascunho antes do call de IA
+    await garantirTabela();
     await prisma.estudoEstrategico.upsert({
       where: { id: "default" },
       update: { status: "gerando", respostas: JSON.stringify(R) },
@@ -235,6 +236,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ── FASE 2 ────────────────────────────────────────────────────────────────
+  // Tabela já garantida pelo Phase 1 — pula DDL
   if (fase === 2) {
     const estudo = await prisma.estudoEstrategico.findUnique({ where: { id: "default" } });
 
