@@ -175,11 +175,11 @@ const ESTADOS_GERACAO = [
   "Mapeando o perfil da empresa…",
   "Construindo a persona em profundidade…",
   "Desenhando a jornada do cliente…",
-  "Analisando o mercado e os concorrentes…",
+  "Analisando mercado e concorrentes…",
   "Definindo o posicionamento estratégico…",
-  "Gerando 30 dores, desejos e objeções…",
-  "Criando o mapa de comunicação completo…",
-  "Organizando o documento estratégico…",
+  "Gerando dores, desejos e objeções…",
+  "Criando o mapa de comunicação…",
+  "Finalizando o documento estratégico…",
 ];
 
 // ── Componente de cópia ─────────────────────────────────────────────────
@@ -285,32 +285,28 @@ export default function PersonaPage() {
     setFase("gerando");
     setEstadoGeracaoIdx(0);
     setErroGeracao(null);
+
+    async function chamar(fase: number, idx: number) {
+      setEstadoGeracaoIdx(idx);
+      const res = await fetch("/api/estrategia/gerar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ respostas, fase }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.erro ?? `Erro ${res.status} na fase ${fase}`);
+      }
+      return res.json();
+    }
+
     try {
-      // Fase 1: empresa, persona, jornada, mercado, posicionamento (~60s)
-      const res1 = await fetch("/api/estrategia/gerar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ respostas, fase: 1 }),
-      });
-      if (!res1.ok) {
-        const body = await res1.json().catch(() => ({}));
-        throw new Error(body?.erro ?? `Erro ${res1.status}`);
-      }
-
-      // Avança animação para a fase do mapa
-      setEstadoGeracaoIdx(6);
-
-      // Fase 2: mapa de comunicação (~60s)
-      const res2 = await fetch("/api/estrategia/gerar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fase: 2 }),
-      });
-      if (!res2.ok) {
-        const body = await res2.json().catch(() => ({}));
-        throw new Error(body?.erro ?? `Erro ${res2.status}`);
-      }
-      const data = await res2.json();
+      // Fase 1: empresa + persona
+      await chamar(1, 0);
+      // Fase 2: jornada + mercado + posicionamento
+      await chamar(2, 3);
+      // Fase 3: mapa de comunicação
+      const data = await chamar(3, 6);
       setEstudo(data);
       setFase("completo");
     } catch (err) {

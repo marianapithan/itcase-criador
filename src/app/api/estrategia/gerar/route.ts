@@ -6,7 +6,11 @@ import { CONFIG } from "@/lib/config";
 export const maxDuration = 300;
 export const runtime = "nodejs";
 
-const SISTEMA = "Você é um estrategista de marketing de elite especializado em varejo premium e branding. Retorne SOMENTE o objeto JSON pedido, sem markdown, sem explicação, sem texto fora do JSON.";
+const SISTEMA =
+  "Você é um estrategista de marketing especializado em varejo premium. " +
+  "Retorne SOMENTE o JSON pedido, sem markdown, sem texto fora do JSON. " +
+  "Valores de string: máximo 20 palavras. Arrays: máximo 4 itens de 8 palavras cada. " +
+  "Seja direto e específico para o negócio descrito.";
 
 async function garantirTabela() {
   try {
@@ -36,166 +40,82 @@ function extrairJSON(texto: string): Record<string, unknown> | null {
   return null;
 }
 
-// ── FASE 1: Seções 1-5 (empresa, persona, jornada, mercado, posicionamento) ──
+// ── FASE 1: Empresa + Persona (~700 tokens saída) ─────────────────────────
 
-async function gerarSecoes(R: Record<string, string>) {
-  const empresa = CONFIG.nome;
+async function gerarEmpresaPersona(R: Record<string, string>) {
   const prompt = `
-Empresa: ${empresa}
-
-RESPOSTAS DA ENTREVISTA ESTRATÉGICA:
-
-[EMPRESA]
-Produtos e serviços: ${R.empresa_produtos || ""}
-Como vende: ${R.empresa_como_vende || ""}
-Ticket médio e produtos: ${R.empresa_ticket || ""}
-Diferenciais reais: ${R.empresa_diferenciais || ""}
-Posicionamento atual vs desejado: ${R.empresa_posicionamento || ""}
-Valores, personalidade, promessa, transformação: ${R.empresa_valores || ""}
-
-[PERSONA]
-Perfil demográfico: ${R.persona_perfil || ""}
-Rotina e estilo de vida: ${R.persona_rotina || ""}
-Objetivos, sonhos, medos, dores: ${R.persona_objetivos || ""}
-O que faz confiar vs desistir: ${R.persona_confianca || ""}
-Linguagem e comportamento digital: ${R.persona_linguagem || ""}
-Influenciadores e hábitos de pesquisa: ${R.persona_influencia || ""}
-
-[JORNADA]
-Como percebe o problema: ${R.jornada_percebe || ""}
-Soluções frustradas e onde trava: ${R.jornada_trava || ""}
-Emoções em cada etapa: ${R.jornada_emocoes || ""}
-
-[MERCADO]
-Concorrentes e comunicação: ${R.mercado_concorrentes || ""}
-Oportunidades e padrões a quebrar: ${R.mercado_oportunidades || ""}
-Tendências relevantes: ${R.mercado_tendencias || ""}
-
-[POSICIONAMENTO]
-Personalidade da marca: ${R.pos_personalidade || ""}
-Big Idea e mecanismo único: ${R.pos_big_idea || ""}
-Inimigo comum e crenças: ${R.pos_crencas || ""}
-
-Gere o documento estratégico completo em JSON:
-
-{
-  "empresa": {
-    "produtos": "lista completa",
-    "como_vende": "canais e processo",
-    "ticket": "ticket médio",
-    "produto_entrada": "produto mais acessível",
-    "produto_premium": "produto mais caro",
-    "diferenciais": ["diferencial 1", "diferencial 2", "diferencial 3", "diferencial 4", "diferencial 5"],
-    "posicionamento_atual": "como está hoje",
-    "posicionamento_desejado": "onde quer chegar",
-    "valores": ["valor 1", "valor 2", "valor 3"],
-    "personalidade": "como a marca se comporta",
-    "promessa": "promessa central",
-    "transformacao": "antes e depois do cliente"
-  },
-  "persona": {
-    "nome": "nome da persona",
-    "perfil": "resumo completo",
-    "rotina": "dia a dia",
-    "objetivos": ["obj 1", "obj 2", "obj 3"],
-    "sonhos": ["sonho 1", "sonho 2"],
-    "medos": ["medo 1", "medo 2", "medo 3"],
-    "frustracoes": ["frustração 1", "frustração 2"],
-    "dores_emocionais": ["dor 1", "dor 2"],
-    "dores_financeiras": ["dor 1", "dor 2"],
-    "dores_praticas": ["dor 1", "dor 2"],
-    "desejos_conscientes": ["desejo 1", "desejo 2"],
-    "desejos_inconscientes": ["desejo 1", "desejo 2"],
-    "gatilhos_compra": ["gatilho 1", "gatilho 2", "gatilho 3"],
-    "valores": ["valor 1", "valor 2"],
-    "linguagem": "como fala e vocabulário",
-    "palavras_usa": ["expressão 1", "expressão 2", "expressão 3"],
-    "palavras_odeia": ["palavra 1", "palavra 2"],
-    "influenciadores": ["quem 1", "quem 2"],
-    "conteudo_consome": ["tipo 1", "tipo 2"],
-    "pesquisa_google": ["busca 1", "busca 2", "busca 3"],
-    "salva_instagram": ["tipo 1", "tipo 2"],
-    "faz_confiar": ["fator 1", "fator 2", "fator 3"],
-    "faz_desistir": ["fator 1", "fator 2"]
-  },
-  "jornada": {
-    "etapas": [
-      {"nome": "Consciência", "descricao": "...", "emocao": "...", "acao": "..."},
-      {"nome": "Consideração", "descricao": "...", "emocao": "...", "acao": "..."},
-      {"nome": "Decisão", "descricao": "...", "emocao": "...", "acao": "..."},
-      {"nome": "Compra", "descricao": "...", "emocao": "...", "acao": "..."},
-      {"nome": "Pos-compra", "descricao": "...", "emocao": "...", "acao": "..."}
-    ],
-    "tenta_sozinha": "o que faz antes de comprar",
-    "solucoes_frustradas": ["frustração 1", "frustração 2"],
-    "onde_trava": "ponto exato onde para",
-    "o_que_falta": "o que precisa para decidir"
-  },
-  "mercado": {
-    "concorrentes": [
-      {"nome": "concorrente 1", "como_comunica": "...", "promessa": "...", "fraqueza": "..."},
-      {"nome": "concorrente 2", "como_comunica": "...", "promessa": "...", "fraqueza": "..."}
-    ],
-    "oportunidades": ["oportunidade 1", "oportunidade 2", "oportunidade 3"],
-    "padroes_quebrar": ["padrão 1", "padrão 2"],
-    "tendencias": ["tendência 1", "tendência 2", "tendência 3"]
-  },
-  "posicionamento": {
-    "arquetipo": "arquétipo principal",
-    "tom_voz": "como a marca fala",
-    "personalidade": "traços de personalidade",
-    "pilares_editoriais": ["pilar 1", "pilar 2", "pilar 3", "pilar 4"],
-    "promessa_central": "a promessa única",
-    "big_idea": "a grande ideia",
-    "mecanismo_unico": "o diferencial que só essa marca tem",
-    "diferencial_competitivo": "vantagem principal",
-    "crencas_construir": ["crença 1", "crença 2", "crença 3"],
-    "crencas_quebrar": ["crença 1", "crença 2"],
-    "inimigo_comum": "o inimigo compartilhado"
-  }
-}`.trim();
-
-  return chamarIA({ funcionalidade: "estrategia-secoes", sistema: SISTEMA, prompt, maxTokens: 2500 });
-}
-
-// ── FASE 2: Mapa de comunicação (10 categorias × 15 itens = 150 insights) ───
-
-async function gerarMapa(personaNome: string, personaPerfil: string) {
-  const empresa = CONFIG.nome;
-  const prompt = `
-Empresa: ${empresa}
-Persona: ${personaNome} — ${personaPerfil.slice(0, 150)}
+Empresa: ${CONFIG.nome}
 Setor: varejo Apple, Londrina-PR
 
-Gere um mapa de comunicação específico e concreto. Cada item deve ser pronto para virar conteúdo.
-Gere EXATAMENTE 8 itens em cada categoria. Seja direto, sem texto extra.
+RESPOSTAS:
+Produtos: ${R.empresa_produtos || ""}
+Como vende: ${R.empresa_como_vende || ""}
+Ticket e produtos: ${R.empresa_ticket || ""}
+Diferenciais: ${R.empresa_diferenciais || ""}
+Posicionamento: ${R.empresa_posicionamento || ""}
+Valores e promessa: ${R.empresa_valores || ""}
+Perfil da persona: ${R.persona_perfil || ""}
+Rotina da persona: ${R.persona_rotina || ""}
+Objetivos/medos/dores: ${R.persona_objetivos || ""}
+Confiança vs desistência: ${R.persona_confianca || ""}
+Linguagem digital: ${R.persona_linguagem || ""}
+Influenciadores: ${R.persona_influencia || ""}
 
-{
-  "dores": ["dor específica 1", "dor 2", "dor 3", "dor 4", "dor 5", "dor 6", "dor 7", "dor 8"],
-  "desejos": ["desejo 1",...8 itens],
-  "objecoes": ["objeção 1",...8 itens],
-  "crencas_limitantes": ["crença 1",...8 itens],
-  "gatilhos_mentais": ["gatilho: como aplicar",...8 itens],
-  "temas_conteudo": ["tema concreto 1",...8 itens],
-  "perguntas_frequentes": ["pergunta real 1",...8 itens],
-  "mitos": ["mito do cliente 1",...8 itens],
-  "erros": ["erro comum 1",...8 itens],
-  "oportunidades_conteudo": ["oportunidade 1",...8 itens]
-}`.trim();
+Gere JSON com empresa e persona. Arrays: até 4 itens. Strings: até 20 palavras.
 
-  return chamarIA({ funcionalidade: "estrategia-mapa", sistema: SISTEMA, prompt, maxTokens: 1600 });
+{"empresa":{"produtos":"...","como_vende":"...","ticket":"...","produto_entrada":"...","produto_premium":"...","diferenciais":["...","...","...","..."],"posicionamento_atual":"...","posicionamento_desejado":"...","valores":["...","...","..."],"personalidade":"...","promessa":"...","transformacao":"..."},"persona":{"nome":"...","perfil":"...","rotina":"...","objetivos":["...","...","..."],"sonhos":["...","..."],"medos":["...","...","..."],"frustracoes":["...","..."],"dores_emocionais":["...","..."],"dores_financeiras":["...","..."],"dores_praticas":["...","..."],"desejos_conscientes":["...","..."],"desejos_inconscientes":["...","..."],"gatilhos_compra":["...","...","..."],"valores":["...","..."],"linguagem":"...","palavras_usa":["...","...","..."],"palavras_odeia":["...","..."],"influenciadores":["...","..."],"conteudo_consome":["...","..."],"pesquisa_google":["...","...","..."],"salva_instagram":["...","..."],"faz_confiar":["...","...","..."],"faz_desistir":["...","..."]}}`.trim();
+
+  return chamarIA({ funcionalidade: "estrategia-empresa-persona", sistema: SISTEMA, prompt, maxTokens: 1200 });
 }
 
-// ── Handler ──────────────────────────────────────────────────────────────────
+// ── FASE 2: Jornada + Mercado + Posicionamento (~600 tokens saída) ────────
+
+async function gerarJornadaMercadoPos(R: Record<string, string>) {
+  const prompt = `
+Empresa: ${CONFIG.nome}
+Setor: varejo Apple, Londrina-PR
+
+RESPOSTAS:
+Percepção do problema: ${R.jornada_percebe || ""}
+Soluções frustradas: ${R.jornada_trava || ""}
+Emoções na jornada: ${R.jornada_emocoes || ""}
+Concorrentes: ${R.mercado_concorrentes || ""}
+Oportunidades: ${R.mercado_oportunidades || ""}
+Tendências: ${R.mercado_tendencias || ""}
+Personalidade da marca: ${R.pos_personalidade || ""}
+Big Idea: ${R.pos_big_idea || ""}
+Crenças e inimigo: ${R.pos_crencas || ""}
+
+Gere JSON com jornada, mercado e posicionamento. Arrays: até 4 itens. Strings: até 20 palavras.
+
+{"jornada":{"etapas":[{"nome":"Consciência","descricao":"...","emocao":"...","acao":"..."},{"nome":"Consideração","descricao":"...","emocao":"...","acao":"..."},{"nome":"Decisão","descricao":"...","emocao":"...","acao":"..."},{"nome":"Compra","descricao":"...","emocao":"...","acao":"..."},{"nome":"Pos-compra","descricao":"...","emocao":"...","acao":"..."}],"tenta_sozinha":"...","solucoes_frustradas":["...","..."],"onde_trava":"...","o_que_falta":"..."},"mercado":{"concorrentes":[{"nome":"...","como_comunica":"...","promessa":"...","fraqueza":"..."},{"nome":"...","como_comunica":"...","promessa":"...","fraqueza":"..."}],"oportunidades":["...","...","..."],"padroes_quebrar":["...","..."],"tendencias":["...","...","..."]},"posicionamento":{"arquetipo":"...","tom_voz":"...","personalidade":"...","pilares_editoriais":["...","...","...","..."],"promessa_central":"...","big_idea":"...","mecanismo_unico":"...","diferencial_competitivo":"...","crencas_construir":["...","...","..."],"crencas_quebrar":["...","..."],"inimigo_comum":"..."}}`.trim();
+
+  return chamarIA({ funcionalidade: "estrategia-jornada-mercado", sistema: SISTEMA, prompt, maxTokens: 1000 });
+}
+
+// ── FASE 3: Mapa de comunicação (~1000 tokens saída) ──────────────────────
+
+async function gerarMapa(personaNome: string, personaPerfil: string) {
+  const prompt = `
+Empresa: ${CONFIG.nome}
+Persona: ${personaNome} — ${personaPerfil.slice(0, 120)}
+
+Gere mapa de comunicação específico. 6 itens por categoria. Itens diretos, até 12 palavras.
+
+{"dores":["...","...","...","...","...","..."],"desejos":["...","...","...","...","...","..."],"objecoes":["...","...","...","...","...","..."],"crencas_limitantes":["...","...","...","...","...","..."],"gatilhos_mentais":["...","...","...","...","...","..."],"temas_conteudo":["...","...","...","...","...","..."],"perguntas_frequentes":["...","...","...","...","...","..."],"mitos":["...","...","...","...","...","..."],"erros":["...","...","...","...","...","..."],"oportunidades_conteudo":["...","...","...","...","...","..."]}`.trim();
+
+  return chamarIA({ funcionalidade: "estrategia-mapa", sistema: SISTEMA, prompt, maxTokens: 1000 });
+}
+
+// ── Handler ───────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const fase: number = body.fase ?? 1;
   const R = (body.respostas ?? {}) as Record<string, string>;
 
-  // ── FASE 1 ────────────────────────────────────────────────────────────────
+  // ── FASE 1: empresa + persona ─────────────────────────────────────────────
   if (fase === 1) {
-    // Garante tabela e salva rascunho antes do call de IA
     await garantirTabela();
     await prisma.estudoEstrategico.upsert({
       where: { id: "default" },
@@ -203,15 +123,15 @@ export async function POST(req: NextRequest) {
       create: { id: "default", status: "gerando", respostas: JSON.stringify(R) },
     });
 
-    const r1 = await gerarSecoes(R);
+    const r1 = await gerarEmpresaPersona(R);
     if (!r1.sucesso) {
-      return NextResponse.json({ erro: `Falha na IA: ${r1.erro}` }, { status: 500 });
+      return NextResponse.json({ erro: `IA indisponível: ${r1.erro}` }, { status: 500 });
     }
 
-    const secoes = extrairJSON(r1.conteudo);
-    if (!secoes) {
+    const sec1 = extrairJSON(r1.conteudo);
+    if (!sec1) {
       return NextResponse.json(
-        { erro: `A IA retornou um JSON inválido ou incompleto. Tente novamente — pode ser instabilidade da API.` },
+        { erro: "JSON inválido na fase 1. Tente novamente.", _debug: r1.conteudo.slice(0, 300) },
         { status: 500 }
       );
     }
@@ -219,31 +139,59 @@ export async function POST(req: NextRequest) {
     await prisma.estudoEstrategico.upsert({
       where: { id: "default" },
       update: {
-        secEmpresa: JSON.stringify(secoes.empresa ?? {}),
-        secPersona: JSON.stringify(secoes.persona ?? {}),
-        secJornada: JSON.stringify(secoes.jornada ?? {}),
-        secMercado: JSON.stringify(secoes.mercado ?? {}),
-        secPosicionamento: JSON.stringify(secoes.posicionamento ?? {}),
-        status: "parcial",
+        secEmpresa: JSON.stringify(sec1.empresa ?? {}),
+        secPersona: JSON.stringify(sec1.persona ?? {}),
+        status: "gerando",
       },
       create: {
         id: "default",
         respostas: JSON.stringify(R),
-        secEmpresa: JSON.stringify(secoes.empresa ?? {}),
-        secPersona: JSON.stringify(secoes.persona ?? {}),
-        secJornada: JSON.stringify(secoes.jornada ?? {}),
-        secMercado: JSON.stringify(secoes.mercado ?? {}),
-        secPosicionamento: JSON.stringify(secoes.posicionamento ?? {}),
-        status: "parcial",
+        secEmpresa: JSON.stringify(sec1.empresa ?? {}),
+        secPersona: JSON.stringify(sec1.persona ?? {}),
+        status: "gerando",
       },
     });
 
     return NextResponse.json({ ok: true, fase: 1 });
   }
 
-  // ── FASE 2 ────────────────────────────────────────────────────────────────
-  // Tabela já garantida pelo Phase 1 — pula DDL
+  // ── FASE 2: jornada + mercado + posicionamento ────────────────────────────
   if (fase === 2) {
+    const r2 = await gerarJornadaMercadoPos(R);
+    if (!r2.sucesso) {
+      return NextResponse.json({ erro: `IA indisponível: ${r2.erro}` }, { status: 500 });
+    }
+
+    const sec2 = extrairJSON(r2.conteudo);
+    if (!sec2) {
+      return NextResponse.json(
+        { erro: "JSON inválido na fase 2. Tente novamente.", _debug: r2.conteudo.slice(0, 300) },
+        { status: 500 }
+      );
+    }
+
+    await prisma.estudoEstrategico.upsert({
+      where: { id: "default" },
+      update: {
+        secJornada: JSON.stringify(sec2.jornada ?? {}),
+        secMercado: JSON.stringify(sec2.mercado ?? {}),
+        secPosicionamento: JSON.stringify(sec2.posicionamento ?? {}),
+        status: "gerando",
+      },
+      create: {
+        id: "default",
+        secJornada: JSON.stringify(sec2.jornada ?? {}),
+        secMercado: JSON.stringify(sec2.mercado ?? {}),
+        secPosicionamento: JSON.stringify(sec2.posicionamento ?? {}),
+        status: "gerando",
+      },
+    });
+
+    return NextResponse.json({ ok: true, fase: 2 });
+  }
+
+  // ── FASE 3: mapa de comunicação ───────────────────────────────────────────
+  if (fase === 3) {
     const estudo = await prisma.estudoEstrategico.findUnique({ where: { id: "default" } });
 
     let personaNome = "cliente ideal";
@@ -254,12 +202,18 @@ export async function POST(req: NextRequest) {
       personaPerfil = String(p.perfil ?? "");
     } catch { /* ignora */ }
 
-    const r2 = await gerarMapa(personaNome, personaPerfil);
-    if (!r2.sucesso) {
-      return NextResponse.json({ erro: `Falha no mapa: ${r2.erro}` }, { status: 500 });
+    const r3 = await gerarMapa(personaNome, personaPerfil);
+    if (!r3.sucesso) {
+      return NextResponse.json({ erro: `IA indisponível: ${r3.erro}` }, { status: 500 });
     }
 
-    const mapa = extrairJSON(r2.conteudo) ?? {};
+    const mapa = extrairJSON(r3.conteudo);
+    if (!mapa) {
+      return NextResponse.json(
+        { erro: "JSON inválido na fase 3. Tente novamente.", _debug: r3.conteudo.slice(0, 300) },
+        { status: 500 }
+      );
+    }
 
     const atualizado = await prisma.estudoEstrategico.upsert({
       where: { id: "default" },
