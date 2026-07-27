@@ -1,14 +1,14 @@
 export const STATUS_CONFIG: Record<string, { label: string; cor: string; dot: string }> = {
-  IDEIA:              { label: "Ideia",               cor: "bg-gray-100 text-gray-600",      dot: "#9CA3AF" },
-  APROVADO:           { label: "Aprovado",             cor: "bg-green-100 text-green-700",    dot: "#22C55E" },
-  ROTEIRO_PRONTO:     { label: "Roteiro pronto",       cor: "bg-indigo-100 text-indigo-700",  dot: "#6366F1" },
-  GERADO_IA:          { label: "Roteiro pronto",       cor: "bg-indigo-100 text-indigo-700",  dot: "#6366F1" },
-  EM_EDICAO:          { label: "Em edição",            cor: "bg-amber-100 text-amber-700",    dot: "#F59E0B" },
-  PRONTO_PUBLICAR:    { label: "Pronto para publicar", cor: "bg-teal-100 text-teal-700",      dot: "#14B8A6" },
-  AGENDADO:           { label: "Agendado",             cor: "bg-purple-100 text-purple-700",  dot: "#A855F7" },
-  PUBLICADO:          { label: "Publicado",            cor: "bg-emerald-100 text-emerald-800",dot: "#059669" },
-  REVISAR_MAIS_TARDE: { label: "Revisar mais tarde",   cor: "bg-amber-50 text-amber-600",     dot: "#D97706" },
-  DESCARTADO:         { label: "Descartado",           cor: "bg-red-50 text-red-500",         dot: "#EF4444" },
+  IDEIA:              { label: "Ideia",               cor: "status-ideia",     dot: "#6a9a78" },
+  APROVADO:           { label: "Aprovado",             cor: "status-aprovado",  dot: "#c8d92a" },
+  ROTEIRO_PRONTO:     { label: "Roteiro pronto",       cor: "status-roteiro",   dot: "#9b8fd4" },
+  GERADO_IA:          { label: "Roteiro pronto",       cor: "status-roteiro",   dot: "#9b8fd4" },
+  EM_EDICAO:          { label: "Em edição",            cor: "status-edicao",    dot: "#fbbf24" },
+  PRONTO_PUBLICAR:    { label: "Pronto para publicar", cor: "status-pronto",    dot: "#6ee7b7" },
+  AGENDADO:           { label: "Agendado",             cor: "status-agendado",  dot: "#9b8fd4" },
+  PUBLICADO:          { label: "Publicado",            cor: "status-publicado", dot: "#c8d92a" },
+  REVISAR_MAIS_TARDE: { label: "Revisar mais tarde",   cor: "status-revisar",   dot: "#fbbf24" },
+  DESCARTADO:         { label: "Descartado",           cor: "status-descartado",dot: "#f06080" },
 };
 
 export const STATUS_LIST_EDITORIAL = [

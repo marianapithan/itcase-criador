@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Search, Signal, CheckSquare, Square } from "lucide-react";
+import { Search, Signal, CheckSquare, Square, CalendarPlus, X } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { STATUS_CONFIG, STATUS_LIST_EDITORIAL, FORMATOS_CONFIG, RESPONSAVEIS, getResponsavelConfig } from "@/lib/constants";
@@ -12,6 +12,8 @@ type Conteudo = {
   gravado: boolean; editado: boolean; concluido: boolean;
   tema?: { titulo: string };
 };
+
+type AgendarState = { id: string; data: string; hora: number; minuto: number };
 
 type FiltroProducao = "" | "gravado" | "editado" | "agendadoRede" | "concluido";
 
@@ -42,6 +44,8 @@ export default function BibliotecaPage() {
   const [filtroResponsavel, setFiltroResponsavel] = useState("");
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [operandoLote, setOperandoLote] = useState(false);
+  const [agendando, setAgendando] = useState<AgendarState | null>(null);
+  const [salvandoData, setSalvandoData] = useState(false);
 
   async function carregar() {
     const data = await fetch("/api/conteudos?incluirTema=true").then((r) => r.json());
@@ -103,6 +107,26 @@ export default function BibliotecaPage() {
       setSelecionados(new Set());
     } finally {
       setOperandoLote(false);
+    }
+  }
+
+  async function salvarAgendamento() {
+    if (!agendando?.data) return;
+    setSalvandoData(true);
+    try {
+      const [ano, mes, dia] = agendando.data.split("-").map(Number);
+      const novaData = new Date(ano, mes - 1, dia, agendando.hora, agendando.minuto, 0, 0);
+      await fetch(`/api/conteudos/${agendando.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataplanejada: novaData.toISOString() }),
+      });
+      setConteudos((prev) => prev.map((c) =>
+        c.id === agendando.id ? { ...c, dataplanejada: novaData.toISOString() } : c
+      ));
+      setAgendando(null);
+    } finally {
+      setSalvandoData(false);
     }
   }
 
@@ -193,6 +217,53 @@ export default function BibliotecaPage() {
         </div>
       )}
 
+      {/* Modal agendar */}
+      {agendando && (
+        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4" onClick={() => setAgendando(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <CalendarPlus size={15} className="text-gray-500" /> Agendar no calendário
+              </h3>
+              <button onClick={() => setAgendando(null)} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <div className="text-xs text-gray-500 mb-1">Data</div>
+                <input type="date" value={agendando.data}
+                  onChange={(e) => setAgendando((p) => p ? { ...p, data: e.target.value } : p)}
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none" />
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <div className="text-xs text-gray-500 mb-1">Hora</div>
+                  <select value={agendando.hora}
+                    onChange={(e) => setAgendando((p) => p ? { ...p, hora: Number(e.target.value) } : p)}
+                    className="w-full text-sm border border-gray-200 rounded-lg px-2.5 py-2 focus:outline-none bg-white">
+                    {Array.from({ length: 14 }, (_, i) => i + 8).map((h) => (
+                      <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <div className="text-xs text-gray-500 mb-1">Minuto</div>
+                  <select value={agendando.minuto}
+                    onChange={(e) => setAgendando((p) => p ? { ...p, minuto: Number(e.target.value) } : p)}
+                    className="w-full text-sm border border-gray-200 rounded-lg px-2.5 py-2 focus:outline-none bg-white">
+                    {[0, 15, 30, 45].map((m) => <option key={m} value={m}>{String(m).padStart(2, "0")}</option>)}
+                  </select>
+                </div>
+              </div>
+              <button onClick={salvarAgendamento} disabled={!agendando.data || salvandoData}
+                className="w-full bg-gray-900 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 disabled:opacity-40 transition-colors flex items-center justify-center gap-2">
+                <CalendarPlus size={14} />
+                {salvandoData ? "Salvando…" : "Salvar no calendário"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tabela */}
       <div className="border border-gray-100 rounded-xl overflow-hidden bg-white overflow-x-auto">
         <table className="w-full text-xs min-w-[700px]">
@@ -255,8 +326,23 @@ export default function BibliotecaPage() {
                     </span>
                   </td>
                   <td className={`px-3 py-3 text-xs font-medium ${producaoCor}`}>{producaoStep}</td>
-                  <td className="px-3 py-3 text-gray-500">
-                    {c.dataplanejada ? format(parseISO(c.dataplanejada), "dd/MM · HH:mm", { locale: ptBR }) : "—"}
+                  <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => {
+                        const d = c.dataplanejada ? parseISO(c.dataplanejada) : new Date();
+                        setAgendando({
+                          id: c.id,
+                          data: c.dataplanejada ? format(parseISO(c.dataplanejada), "yyyy-MM-dd") : "",
+                          hora: c.dataplanejada ? d.getHours() : 12,
+                          minuto: c.dataplanejada ? d.getMinutes() : 0,
+                        });
+                      }}
+                      className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-900 group">
+                      <CalendarPlus size={12} className="text-gray-300 group-hover:text-gray-700 shrink-0" />
+                      {c.dataplanejada
+                        ? format(parseISO(c.dataplanejada), "dd/MM · HH:mm", { locale: ptBR })
+                        : <span className="text-gray-300 group-hover:text-gray-500">Agendar</span>}
+                    </button>
                   </td>
                   <td className="px-3 py-3 text-center">
                     {c.agendadoRede

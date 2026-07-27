@@ -1,8 +1,10 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Sparkles, FileText, Plus, ChevronRight, X, Check, Clock, Trash2, CalendarPlus, ChevronDown, ChevronUp, Pencil, Copy, Hash, Eye, EyeOff, Copy as CopyIcon } from "lucide-react";
+import { Sparkles, FileText, Plus, ChevronRight, X, Check, Clock, Trash2, CalendarPlus, ChevronDown, ChevronUp, Pencil, Copy, Hash, Eye, EyeOff, Copy as CopyIcon, Calendar, CalendarX } from "lucide-react";
 import { STATUS_CONFIG, STATUS_LIST_EDITORIAL, FORMATOS_CONFIG, RESPONSAVEIS, getResponsavelConfig } from "@/lib/constants";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 type Conteudo = {
   id: string;
@@ -16,6 +18,7 @@ type Conteudo = {
   objetivo?: string;
   etapaFunil?: string;
   responsavel?: string;
+  dataplanejada?: string;
   criadoEm: string;
 };
 type Tema = { id: string; titulo: string };
@@ -38,11 +41,11 @@ const FRAMEWORKS: Framework[] = [
   { id: "bab", emoji: "🔄", nome: "BAB", categoria: "Frameworks", descricao: "Before → After → Bridge. Antes detalhado, depois ideal, ponte com CTA.", prompt: "Use o framework BAB (Before → After → Bridge). Before: descreva a situação atual com detalhes sensoriais e emocionais. After: pinte o cenário ideal de forma vívida. Bridge: mostre como a It Case é a ponte entre os dois estados, com CTA claro. Ao final, inclua uma versão curta em formato depoimento de cliente." },
   { id: "pastor", emoji: "🌿", nome: "PASTOR", categoria: "Frameworks", descricao: "Problema, Amplificação, Solução/História, Transformação, Oferta, Resposta (CTA).", prompt: "Use o framework PASTOR: P (Problema), A (Amplificação), S (Solução/História), T (Transformação), O (Oferta), R (Resposta/CTA). Desenvolva cada bloco." },
   { id: "quest", emoji: "🔑", nome: "QUEST", categoria: "Frameworks", descricao: "Qualify, Understand, Educate, Stimulate, Transition. Qualifique, eduque e converta.", prompt: "Use o framework QUEST: Q (Qualify), U (Understand), E (Educate), S (Stimulate), T (Transition). Desenvolva cada etapa." },
-  { id: "4ps", emoji: "🧩", nome: "4 Ps", categoria: "Frameworks", descricao: "Picture, Promise, Prove, Push. Imagem mental, promessa, prova e empurrão final.", prompt: "Use os 4 Ps: P (Picture — crie uma imagem mental vívida), P (Promise — faça uma promessa clara), P (Prove — apresente prova), P (Push — empurrão final com urgência e CTA)." },
+  { id: "4ps", emoji: "🧩", nome: "4 Ps", categoria: "Frameworks", descricao: "Picture, Promise, Prove, Push. Imagem mental, promessa, prova e empurrão final.", prompt: "Use os 4 Ps: P (Picture: crie uma imagem mental vívida), P (Promise: faça uma promessa clara), P (Prove: apresente prova), P (Push: empurrão final com urgência e CTA)." },
   { id: "slap", emoji: "👋", nome: "SLAP", categoria: "Frameworks", descricao: "Stop, Look, Act, Purchase. Curto, direto e agressivo para parar o scroll.", prompt: "Use o framework SLAP: S (Stop), L (Look), A (Act), P (Purchase). Peça curta, sem enrolação, texto de impacto." },
   { id: "parabola", emoji: "📖", nome: "Parábola", categoria: "Narrativos", descricao: "Gancho → História → Lição → Conexão → CTA. História real com cena e diálogo.", prompt: "Use o framework PARÁBOLA: gancho que prende, história real ou verossímil (com cena, diálogo e detalhe sensorial), lição, conexão com a solução da It Case, CTA. Inclua versão curta para stories." },
   { id: "18-ganchos", emoji: "🪝", nome: "18 Ganchos", categoria: "Ganchos", descricao: "3 variações para CADA categoria: DOR, TRANSFORMAÇÃO, CURIOSIDADE, URGÊNCIA, AUTORIDADE + 3 combinados.", prompt: "Gere 18 ganchos numerados, organizados em 6 grupos de 3: (1) DOR/PROBLEMA, (2) TRANSFORMAÇÃO, (3) CURIOSIDADE, (4) URGÊNCIA, (5) AUTORIDADE, (6) COMBINADOS. Total: 18 ganchos numerados." },
-  { id: "ganchos-video", emoji: "🎬", nome: "Ganchos de Vídeo", categoria: "Ganchos", descricao: "10 ganchos dos primeiros 3 segundos. Fala de abertura + indicação visual.", prompt: "Gere 10 ganchos para os primeiros 3 segundos de vídeo curto (Reels/TikTok). Para cada gancho: (a) FALA — o que dizer em voz, (b) VISUAL — o que aparece na tela. Formato numerado de 1 a 10." },
+  { id: "ganchos-video", emoji: "🎬", nome: "Ganchos de Vídeo", categoria: "Ganchos", descricao: "10 ganchos dos primeiros 3 segundos. Fala de abertura + indicação visual.", prompt: "Gere 10 ganchos para os primeiros 3 segundos de vídeo curto (Reels/TikTok). Para cada gancho: (a) FALA: o que dizer em voz, (b) VISUAL: o que aparece na tela. Formato numerado de 1 a 10." },
 ];
 
 const CATEGORIA_COR: Record<string, string> = {
@@ -54,7 +57,7 @@ const CATEGORIA_COR: Record<string, string> = {
 type Filtro = "todos" | "banco" | "revisar" | "aprovados" | "descartados";
 type TelaAcao = null | "aprovar" | "descartar";
 
-export default function RoteirosPage() {
+function RoteirosPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [conteudos, setConteudos] = useState<Conteudo[]>([]);
@@ -86,6 +89,12 @@ export default function RoteirosPage() {
   const [copiadoHashtags, setCopiadoHashtags] = useState(false);
   const [mostrarPreview, setMostrarPreview] = useState(false);
   const [duplicando, setDuplicando] = useState(false);
+  const [erroLote, setErroLote] = useState("");
+  const [sucessoLote, setSucessoLote] = useState(0);
+  const [agendandoData, setAgendandoData] = useState("");
+  const [agendandoHora, setAgendandoHora] = useState(12);
+  const [agendandoMinuto, setAgendandoMinuto] = useState(0);
+  const [salvandoData, setSalvandoData] = useState(false);
 
   const frameworkSelecionado = FRAMEWORKS.find((f) => f.id === form.framework);
   const podeGerar = form.titulo.trim() && form.framework;
@@ -128,12 +137,14 @@ export default function RoteirosPage() {
         body: JSON.stringify({ ...form, frameworkNome: frameworkSelecionado?.nome, frameworkPrompt: frameworkSelecionado?.prompt }),
       });
       const data = await res.json();
-      if (data.erro) { alert(data.erro); return; }
+      if (data.erro) { setErroLote(data.erro); return; }
       await carregar();
       setSelecionado(data);
       setCriandoNovo(false);
       setTelaAcao(null);
       setForm({ titulo: "", formato: "REELS", temaId: "", instrucao: "", framework: "" });
+    } catch {
+      setErroLote("Erro de conexão. Verifique sua internet e tente novamente.");
     } finally {
       setGerando(false);
     }
@@ -141,6 +152,8 @@ export default function RoteirosPage() {
 
   async function criarLote() {
     if (!loteForm.prompt.trim()) return;
+    setErroLote("");
+    setSucessoLote(0);
     setGerandoLote(true);
     try {
       const res = await fetch("/api/roteiros/gerar-lote", {
@@ -149,11 +162,14 @@ export default function RoteirosPage() {
         body: JSON.stringify(loteForm),
       });
       const data = await res.json();
-      if (data.erro) { alert(data.erro); return; }
+      if (data.erro) { setErroLote(data.erro); return; }
       await carregar();
-      setCriandoNovo(false);
+      setSucessoLote(data.criados ?? 0);
       setLoteForm({ prompt: "", quantidade: 7, temaId: "" });
-      setModoNovo("unico");
+      // Deixa a mensagem de sucesso visível por 3s antes de fechar
+      setTimeout(() => { setCriandoNovo(false); setSucessoLote(0); setModoNovo("unico"); }, 3000);
+    } catch {
+      setErroLote("Erro de conexão ou timeout. A IA pode demorar mais no celular. Tente novamente.");
     } finally {
       setGerandoLote(false);
     }
@@ -306,6 +322,37 @@ export default function RoteirosPage() {
     } finally {
       setDuplicando(false);
     }
+  }
+
+  async function agendarNoCalendario() {
+    if (!selecionado || !agendandoData) return;
+    setSalvandoData(true);
+    try {
+      const [ano, mes, dia] = agendandoData.split("-").map(Number);
+      const novaData = new Date(ano, mes - 1, dia, agendandoHora, agendandoMinuto, 0, 0);
+      const iso = novaData.toISOString();
+      await fetch(`/api/conteudos/${selecionado.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataplanejada: iso }),
+      });
+      setSelecionado((p) => p ? { ...p, dataplanejada: iso } : p);
+      setConteudos((prev) => prev.map((c) => c.id === selecionado.id ? { ...c, dataplanejada: iso } : c));
+      setAgendandoData("");
+    } finally {
+      setSalvandoData(false);
+    }
+  }
+
+  async function removerDoCalendario() {
+    if (!selecionado) return;
+    await fetch(`/api/conteudos/${selecionado.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dataplanejada: null }),
+    });
+    setSelecionado((p) => p ? { ...p, dataplanejada: undefined } : p);
+    setConteudos((prev) => prev.map((c) => c.id === selecionado.id ? { ...c, dataplanejada: undefined } : c));
   }
 
   function badgeStatus(status: string) {
@@ -480,7 +527,7 @@ export default function RoteirosPage() {
 
                 <div className="mt-5 mb-5">
                   <input value={form.instrucao} onChange={(e) => setForm((p) => ({ ...p, instrucao: e.target.value }))}
-                    placeholder="Instrução extra (opcional) — ex: foco em seminovos, tom mais descontraído..."
+                    placeholder="Instrução extra (opcional): ex: foco em seminovos, tom mais descontraído..."
                     className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-400" />
                 </div>
 
@@ -531,9 +578,22 @@ export default function RoteirosPage() {
 
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-4 text-xs text-blue-700">
                   A IA vai gerar {loteForm.quantidade} ideias com títulos e formatos variados. Depois você clica em cada ideia para gerar o roteiro completo.
+                  {gerandoLote && <span className="block mt-1 font-medium">Isso pode levar 15–30 segundos, aguarde…</span>}
                 </div>
 
-                <button onClick={criarLote} disabled={gerandoLote || !loteForm.prompt.trim()}
+                {sucessoLote > 0 && (
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 text-xs text-green-700 font-medium">
+                    ✓ {sucessoLote} {sucessoLote === 1 ? "ideia criada" : "ideias criadas"}! Aparecerão na lista em instantes.
+                  </div>
+                )}
+
+                {erroLote && (
+                  <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-4 text-xs text-red-700">
+                    {erroLote}
+                  </div>
+                )}
+
+                <button onClick={criarLote} disabled={gerandoLote || !loteForm.prompt.trim() || sucessoLote > 0}
                   className="w-full text-sm bg-gray-900 text-white py-3 rounded-xl hover:bg-gray-700 disabled:opacity-40 transition-colors flex items-center justify-center gap-2 font-medium">
                   <Sparkles size={14} />
                   {gerandoLote ? `Gerando ${loteForm.quantidade} ideias…` : `Gerar ${loteForm.quantidade} ideias`}
@@ -674,6 +734,74 @@ export default function RoteirosPage() {
                 </div>
               </div>
             )}
+
+            {/* Calendário editorial */}
+            <div className="mb-5 p-3 bg-gray-50 rounded-xl border border-gray-100">
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <Calendar size={12} /> Calendário editorial
+              </div>
+              {selecionado.dataplanejada ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-800">
+                    {format(parseISO(selecionado.dataplanejada), "d 'de' MMM 'às' HH:mm", { locale: ptBR })}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const d = parseISO(selecionado.dataplanejada!);
+                        setAgendandoData(format(d, "yyyy-MM-dd"));
+                        setAgendandoHora(d.getHours());
+                        setAgendandoMinuto(d.getMinutes());
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                      <CalendarPlus size={12} /> Alterar
+                    </button>
+                    <button onClick={removerDoCalendario}
+                      className="text-xs text-red-400 hover:text-red-600 flex items-center gap-1">
+                      <CalendarX size={12} /> Remover
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400 mb-2">Não agendado no calendário</p>
+              )}
+              {(!selecionado.dataplanejada || agendandoData) && (
+                <div className="mt-2 flex flex-wrap gap-2 items-end">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] text-gray-400">Data</span>
+                    <input type="date" value={agendandoData}
+                      onChange={(e) => setAgendandoData(e.target.value)}
+                      className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none bg-white" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] text-gray-400">Hora</span>
+                    <select value={agendandoHora} onChange={(e) => setAgendandoHora(Number(e.target.value))}
+                      className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none bg-white">
+                      {Array.from({ length: 14 }, (_, i) => i + 8).map((h) => (
+                        <option key={h} value={h}>{String(h).padStart(2, "0")}h</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] text-gray-400">Min</span>
+                    <select value={agendandoMinuto} onChange={(e) => setAgendandoMinuto(Number(e.target.value))}
+                      className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none bg-white">
+                      {[0, 15, 30, 45].map((m) => <option key={m} value={m}>{String(m).padStart(2, "0")}</option>)}
+                    </select>
+                  </div>
+                  <button onClick={agendarNoCalendario}
+                    disabled={!agendandoData || salvandoData}
+                    className="flex items-center gap-1.5 text-xs bg-gray-900 text-white px-3 py-1.5 rounded-lg hover:bg-gray-700 disabled:opacity-40 transition-colors">
+                    <CalendarPlus size={12} />
+                    {salvandoData ? "Salvando…" : "Salvar no calendário"}
+                  </button>
+                  {agendandoData && selecionado.dataplanejada && (
+                    <button onClick={() => setAgendandoData("")}
+                      className="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Roteiro */}
             {selecionado.roteiro && (
@@ -859,5 +987,13 @@ export default function RoteirosPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function RoteirosPage() {
+  return (
+    <Suspense>
+      <RoteirosPageInner />
+    </Suspense>
   );
 }

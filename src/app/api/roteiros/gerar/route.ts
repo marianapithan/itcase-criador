@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { chamarIA, contextoCerebro } from "@/lib/ai/gateway";
+import { obterFrameworkAtivo } from "@/lib/ai/framework";
 
 const INSTRUCOES_FORMATO: Record<string, string> = {
   REELS: "Roteiro para Reels (vídeo curto): gancho nos primeiros 3 segundos, narrativa em blocos, legenda com CTA. Formato: Gancho | Desenvolvimento (3-5 blocos curtos) | CTA.",
@@ -30,7 +31,7 @@ function parsearResposta(texto: string): { roteiro: string; legenda: string; obj
 }
 
 export async function POST(req: NextRequest) {
-  const { titulo, formato, temaId, instrucao, frameworkNome, frameworkPrompt, conteudoId } = await req.json();
+  const { titulo, formato, temaId, instrucao, conteudoId } = await req.json();
 
   let contextoTema = "";
   if (temaId) {
@@ -41,28 +42,29 @@ export async function POST(req: NextRequest) {
   }
 
   const instrucaoFormato = INSTRUCOES_FORMATO[formato] ?? "Crie um roteiro de conteúdo adequado ao formato.";
+  const frameworkPrompt = await obterFrameworkAtivo();
 
-  const instrucaoFramework = frameworkPrompt
-    ? `\nMODELO DE CONTEÚDO OBRIGATÓRIO (${frameworkNome ?? ""}): ${frameworkPrompt}`
-    : "";
+  const sistema = `${contextoCerebro()}
+
+--- FRAMEWORK DE COPYWRITING ATIVO ---
+${frameworkPrompt}`;
 
   const resultado = await chamarIA({
     funcionalidade: "gerar-roteiro",
-    sistema: contextoCerebro(),
+    sistema,
     prompt: `Crie um roteiro completo de conteúdo para a It Case.
 
 Título: ${titulo}
 Formato: ${formato}
 ${contextoTema}
 ${instrucao ? `Instrução extra: ${instrucao}` : ""}
-${instrucaoFramework}
 
 Instrução de formato: ${instrucaoFormato}
 
 Responda APENAS com um JSON válido no formato exato abaixo (sem texto fora do JSON, sem markdown):
 {
   "roteiro": "roteiro completo aqui (pronto para usar, sem explicações)",
-  "legenda": "legenda para Instagram com emojis e hashtags relevantes",
+  "legenda": "legenda para Instagram com hashtags relevantes",
   "objetivo": "objetivo deste conteúdo em uma frase curta",
   "etapaFunil": "TOPO"
 }

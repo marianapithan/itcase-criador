@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { chamarIA, contextoCerebro } from "@/lib/ai/gateway";
+import { obterFrameworkAtivo } from "@/lib/ai/framework";
+
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   const { prompt, quantidade = 7, temaId } = await req.json();
@@ -13,9 +16,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const frameworkPrompt = await obterFrameworkAtivo();
+  const sistema = `${contextoCerebro()}\n\n--- FRAMEWORK DE COPYWRITING ATIVO ---\n${frameworkPrompt}`;
+
   const resultado = await chamarIA({
     funcionalidade: "gerar-lote-ideias",
-    sistema: contextoCerebro(),
+    sistema,
     prompt: `Gere ${quantidade} ideias de conteúdo diferentes para a It Case.
 
 Contexto: ${prompt}
@@ -60,6 +66,10 @@ Etapas válidas: TOPO, MEIO, FUNDO.`,
 
   const FORMATOS_VALIDOS = ["REELS", "CARROSSEL", "POST_ESTATICO", "STORIES", "LEGENDA", "EMAIL", "LIVE"];
   const ETAPAS_VALIDAS = ["TOPO", "MEIO", "FUNDO"];
+
+  if (ideias.length === 0) {
+    return NextResponse.json({ erro: "A IA não gerou nenhuma ideia. Tente novamente com um contexto diferente." }, { status: 400 });
+  }
 
   const criados = await Promise.all(
     ideias.map((ideia) =>

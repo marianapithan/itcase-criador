@@ -13,8 +13,13 @@ import {
   Radar,
   LogOut,
   User,
+  FileBarChart,
+  Megaphone,
+  ShieldAlert,
+  FlaskConical,
 } from "lucide-react";
 import { CONFIG } from "@/lib/config";
+import { ThemeToggle } from "./ThemeToggle";
 
 const nav = [
   { href: "/dashboard",   label: "Dashboard",          icon: LayoutDashboard },
@@ -23,7 +28,11 @@ const nav = [
   { href: "/calendario",  label: "Calendário",          icon: CalendarDays },
   { href: "/biblioteca",  label: "Biblioteca",          icon: Library },
   { href: "/tendencias",  label: "Radar IA",            icon: Radar },
+  { href: "/trafego",     label: "Tráfego Pago",        icon: Megaphone },
+  { href: "/objecoes",    label: "Mapa de Objeções",    icon: ShieldAlert },
   { href: "/persona",     label: "Estudo de Persona",   icon: User },
+  { href: "/frameworks",  label: "Frameworks IA",       icon: FlaskConical },
+  { href: "/relatorio",   label: "Relatório PDF",       icon: FileBarChart },
 ];
 
 function getCookie(name: string): string {
@@ -48,14 +57,14 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-56 shrink-0 flex flex-col border-r border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] h-full">
+    <aside className="w-56 shrink-0 flex flex-col h-full" style={{ background: "var(--sidebar-bg)", borderRight: "1px solid #1e4535" }}>
       {/* Logo */}
-      <div className="px-4 py-5 border-b border-[var(--sidebar-border)]">
+      <div className="px-4 py-5" style={{ borderBottom: "1px solid #1e4535" }}>
         <div className="flex items-center gap-2">
-          <Sparkles size={18} className="text-gray-800" />
+          <Sparkles size={18} style={{ color: "#c8d92a" }} />
           <div>
-            <div className="font-semibold text-gray-900 text-sm leading-tight">{CONFIG.nome}</div>
-            <div className="text-[11px] text-gray-500 leading-tight">{CONFIG.tagline}</div>
+            <div className="font-bold text-sm leading-tight" style={{ color: "#e4f0de", fontFamily: "var(--font-syne, inherit)" }}>{CONFIG.nome}</div>
+            <div className="text-[11px] leading-tight" style={{ color: "#6a9a78" }}>{CONFIG.tagline}</div>
           </div>
         </div>
       </div>
@@ -68,11 +77,13 @@ export function Sidebar() {
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors ${
-                active
-                  ? "bg-gray-900 text-white"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-              }`}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors"
+              style={active
+                ? { background: "#c8d92a", color: "#0d2b1e", fontWeight: 600 }
+                : { color: "#6a9a78" }
+              }
+              onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = "#163025"; (e.currentTarget as HTMLElement).style.color = "#e4f0de"; } }}
+              onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = ""; (e.currentTarget as HTMLElement).style.color = "#6a9a78"; } }}
             >
               <Icon size={15} />
               {label}
@@ -82,27 +93,28 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom */}
-      <div className="px-2 py-3 border-t border-[var(--sidebar-border)] space-y-0.5">
+      <div className="px-2 py-3 space-y-0.5" style={{ borderTop: "1px solid #1e4535" }}>
+        <ThemeToggle />
         <Link
           href="/configuracoes"
-          className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors ${
-            path.startsWith("/configuracoes")
-              ? "bg-gray-900 text-white"
-              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-          }`}
+          className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors"
+          style={path.startsWith("/configuracoes")
+            ? { background: "#c8d92a", color: "#0d2b1e", fontWeight: 600 }
+            : { color: "#6a9a78" }
+          }
         >
           <Settings size={15} />
           Configurações
         </Link>
 
-        {/* Usuário logado + logout */}
         {nomeUsuario && (
-          <div className="flex items-center justify-between px-3 py-2 rounded-md text-sm text-gray-500">
+          <div className="flex items-center justify-between px-3 py-2 rounded-md text-sm" style={{ color: "#4a7055" }}>
             <span className="text-xs font-medium truncate">{nomeUsuario}</span>
             <button
               onClick={sair}
               title="Sair"
-              className="text-gray-400 hover:text-red-500 transition-colors ml-2 shrink-0"
+              className="transition-colors ml-2 shrink-0 hover:text-[#f06080]"
+              style={{ color: "#4a7055" }}
             >
               <LogOut size={14} />
             </button>

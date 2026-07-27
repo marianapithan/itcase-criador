@@ -79,6 +79,11 @@ model Conteudo {
   trafegoFim         DateTime?
   trafegoObjetivo    String?
   trafegoObs         String?
+  metricaAlcance     Int?
+  metricaImpressoes  Int?
+  metricaCurtidas    Int?
+  metricaComentarios Int?
+  metricaSalvamentos Int?
   criadoEm       DateTime   @default(now())
   atualizadoEm   DateTime   @updatedAt
 }
@@ -135,6 +140,44 @@ model PersonaConfig {
   comoComunicar    String   @default("[]")
   sugestoesIA      String?
   atualizadoEm     DateTime @updatedAt
+}
+
+model Objecao {
+  id                  String   @id @default(cuid())
+  texto               String
+  frequencia          String?
+  etapaVenda          String?
+  consegueContornar   String?
+  clienteCompraDepois String?
+  respostaAtual       String?
+  prioridade          Int?
+  raiz                String?
+  respostaCurta       String?
+  prevencao           String?
+  analiseCompleta     String?
+  criadoEm            DateTime @default(now())
+  atualizadoEm        DateTime @updatedAt
+}
+
+model EstudoEstrategico {
+  id             String   @id @default("default")
+  respostas      String   @default("{}") // JSON respostas da entrevista
+  secEmpresa     String   @default("") // Seção 1 gerada pela IA
+  secPersona     String   @default("") // Seção 2 gerada pela IA
+  secJornada     String   @default("") // Seção 3 gerada pela IA
+  secMercado     String   @default("") // Seção 4 gerada pela IA
+  secPosicionamento String @default("") // Seção 5 gerada pela IA
+  secMapa        String   @default("") // Seção 6 mapa de comunicação
+  status         String   @default("novo") // novo | gerando | completo
+  criadoEm       DateTime @default(now())
+  atualizadoEm   DateTime @updatedAt
+}
+
+model ConfigFramework {
+  id           String   @id @default("default")
+  ativo        String   @default("AIDA")
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
 }
 
 model LogIA {

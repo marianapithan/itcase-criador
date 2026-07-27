@@ -36,27 +36,50 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div
+      className="min-h-screen flex items-center justify-center px-4 grid-bg"
+      style={{ background: "#0d2b1e" }}
+    >
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gray-900 mb-4">
-            <Sparkles size={22} className="text-white" />
+          <div
+            className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-5"
+            style={{ background: "linear-gradient(135deg, #c8d92a, #9b8fd4)", boxShadow: "0 0 32px rgba(200,217,42,0.3)" }}
+          >
+            <Sparkles size={24} style={{ color: "#0d2b1e" }} />
           </div>
-          <h1 className="text-xl font-semibold text-gray-900">{CONFIG.nome}</h1>
-          <p className="text-sm text-gray-500 mt-1">{CONFIG.tagline}</p>
+          <h1
+            className="text-2xl font-bold leading-tight"
+            style={{ color: "#e4f0de", fontFamily: "var(--font-syne, inherit)" }}
+          >
+            {CONFIG.nome}
+          </h1>
+          <p className="text-sm mt-1" style={{ color: "#6a9a78" }}>{CONFIG.tagline}</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
-          <h2 className="text-base font-semibold text-gray-900 mb-1">Bem-vinda de volta</h2>
-          <p className="text-xs text-gray-500 mb-6">Digite seu email para acessar.</p>
+        <div
+          className="rounded-2xl p-8"
+          style={{ background: "#122a1d", border: "1px solid #1e4535" }}
+        >
+          <h2
+            className="text-base font-semibold mb-1"
+            style={{ color: "#e4f0de", fontFamily: "var(--font-syne, inherit)" }}
+          >
+            Bem-vinda de volta
+          </h2>
+          <p className="text-xs mb-6" style={{ color: "#6a9a78" }}>
+            Digite seu email para acessar o estúdio.
+          </p>
 
           <form onSubmit={entrar} className="space-y-4">
             <div>
-              <label className="text-xs font-medium text-gray-700 block mb-1.5">Email</label>
+              <label className="text-xs font-medium block mb-1.5" style={{ color: "#8ab89a" }}>
+                Email
+              </label>
               <div className="relative">
-                <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "#4a7055" }} />
                 <input
                   type="email"
                   value={email}
@@ -64,46 +87,68 @@ export default function LoginPage() {
                   placeholder="seu@email.com"
                   required
                   autoFocus
-                  className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-100 transition"
+                  className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl focus:outline-none transition"
+                  style={{
+                    background: "#0a2318",
+                    color: "#e4f0de",
+                    border: "1px solid #2d5a3d",
+                  }}
+                  onFocus={e => (e.target.style.borderColor = "#c8d92a")}
+                  onBlur={e => (e.target.style.borderColor = "#2d5a3d")}
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-medium text-gray-700 block mb-1.5">Senha</label>
+              <label className="text-xs font-medium block mb-1.5" style={{ color: "#8ab89a" }}>
+                Senha
+              </label>
               <div className="relative">
-                <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "#4a7055" }} />
                 <input
                   type="password"
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-100 transition"
+                  className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl focus:outline-none transition"
+                  style={{
+                    background: "#0a2318",
+                    color: "#e4f0de",
+                    border: "1px solid #2d5a3d",
+                  }}
+                  onFocus={e => (e.target.style.borderColor = "#c8d92a")}
+                  onBlur={e => (e.target.style.borderColor = "#2d5a3d")}
                 />
               </div>
             </div>
 
             {erro && (
-              <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-lg">{erro}</p>
+              <p className="text-xs px-3 py-2 rounded-lg" style={{ color: "#f06080", background: "rgba(240,96,128,0.1)", border: "1px solid rgba(240,96,128,0.2)" }}>
+                {erro}
+              </p>
             )}
 
             <button
               type="submit"
               disabled={carregando || !email || !senha}
-              className="w-full bg-gray-900 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-700 disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-xl text-sm font-bold disabled:opacity-40 transition-all flex items-center justify-center gap-2"
+              style={{ background: "#c8d92a", color: "#0d2b1e", fontFamily: "var(--font-syne, inherit)" }}
             >
               {carregando ? <Loader2 size={15} className="animate-spin" /> : null}
-              {carregando ? "Entrando…" : "Entrar"}
+              {carregando ? "Entrando…" : "Entrar no estúdio"}
             </button>
           </form>
         </div>
 
-        <p className="text-center text-[11px] text-gray-400 mt-6">
+        <p className="text-center text-[11px] mt-6" style={{ color: "#4a7055" }}>
           Acesso restrito ao time {CONFIG.nome}.
         </p>
-        <p className="text-center text-[10px] text-gray-300 mt-1">
-          powered by <span className="font-semibold">cr<span className="text-gray-400">IA</span>dor</span>
+        <p className="text-center text-[10px] mt-1" style={{ color: "#2d5a3d" }}>
+          powered by{" "}
+          <span className="font-semibold" style={{ color: "#4a7055" }}>
+            cr<span style={{ color: "#c8d92a" }}>IA</span>dor
+          </span>
         </p>
       </div>
     </div>

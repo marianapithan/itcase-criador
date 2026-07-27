@@ -10,7 +10,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="hidden md:block">
         <Sidebar />
       </div>
-      <main className="flex-1 overflow-y-auto bg-white mobile-main-pb md:pb-0">
+      <main className="flex-1 overflow-y-auto mobile-main-pb md:pb-0" style={{ background: "var(--background)" }}>
         {children}
       </main>
       {/* Bottom nav — apenas mobile */}

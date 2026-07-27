@@ -119,7 +119,8 @@ export async function chamarIA(opcoes: OpcoesChamada): Promise<RespostaIA> {
       const resultado = await chamarProvedor(provedor, modelo, opcoes);
       const latenciaMs = Date.now() - inicio;
 
-      await prisma.logIA.create({
+      // Log is fire-and-forget — never block or discard AI result on log failure
+      prisma.logIA.create({
         data: {
           requestId,
           funcionalidade: opcoes.funcionalidade,
@@ -131,7 +132,7 @@ export async function chamarIA(opcoes: OpcoesChamada): Promise<RespostaIA> {
           latenciaMs,
           tentativas,
         },
-      });
+      }).catch(() => {});
 
       return {
         sucesso: true,

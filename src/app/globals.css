@@ -1,19 +1,51 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #111827;
-  --sidebar-bg: #f9fafb;
-  --sidebar-border: #e5e7eb;
-  --border: #e5e7eb;
-  --primary: #111827;
-  --primary-fg: #ffffff;
-  --muted: #6b7280;
-  --accent: #f3f4f6;
+  /* Light mode — verde floresta como base da identidade */
+  --background: #f4f9f2;
+  --foreground: #0d2b1e;
+  --sidebar-bg: #0d2b1e;
+  --sidebar-border: #1e4535;
+  --border: #cde0c5;
+  --primary: #0d2b1e;
+  --primary-fg: #f4f9f2;
+  --muted: #5a7a6a;
+  --accent: #e4f0de;
   --success: #16a34a;
   --warning: #d97706;
-  --danger: #dc2626;
-  --info: #2563eb;
+  --danger: #f06080;
+  --info: #9b8fd4;
+  --card-bg: #ffffff;
+  --card-border: #cde0c5;
+  --input-bg: #ffffff;
+  --input-border: #b5d4ac;
+  --lime: #c8d92a;
+  --purple: #9b8fd4;
+  --coral: #f06080;
+}
+
+html.dark {
+  --background: #0d2b1e;
+  --foreground: #e4f0de;
+  --sidebar-bg: #091e14;
+  --sidebar-border: #1e4535;
+  --border: #1e4535;
+  --primary: #c8d92a;
+  --primary-fg: #0d2b1e;
+  --muted: #6a9a78;
+  --accent: #163025;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f06080;
+  --info: #9b8fd4;
+  --card-bg: #122a1d;
+  --card-border: #1e4535;
+  --input-bg: #0a2318;
+  --input-border: #2d5a3d;
+  --lime: #c8d92a;
+  --purple: #9b8fd4;
+  --coral: #f06080;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -21,6 +53,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-syne);
 }
 
 * { box-sizing: border-box; }
@@ -31,20 +64,72 @@ body {
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-syne, var(--font-geist-sans)), -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Textura de grade sutil — identidade da marca */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(200, 217, 42, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200, 217, 42, 0.06) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Botão gradiente — sand/cream → lavanda */
+.btn-gradient {
+  background: linear-gradient(135deg, #c8b890, #9b8fd4);
+  color: #0d2b1e;
+  border-radius: 999px;
+}
+
+/* Utilitários dark-mode via classes auxiliares */
+html.dark .dk-bg   { background-color: var(--card-bg) !important; }
+html.dark .dk-bg2  { background-color: var(--background) !important; }
+html.dark .dk-border { border-color: var(--card-border) !important; }
+html.dark .dk-text  { color: var(--foreground) !important; }
+html.dark .dk-muted { color: var(--muted) !important; }
+
+/* Overrides globais para classes Tailwind usadas nos componentes */
+html.dark [class*="bg-white"]    { background-color: var(--card-bg) !important; }
+html.dark [class*="bg-gray-50"]  { background-color: #163025 !important; }
+html.dark [class*="bg-gray-100"] { background-color: #1e4535 !important; }
+html.dark [class*="border-gray-100"] { border-color: #1e4535 !important; }
+html.dark [class*="border-gray-200"] { border-color: #2d5a3d !important; }
+html.dark [class*="text-gray-900"]   { color: #e4f0de !important; }
+html.dark [class*="text-gray-800"]   { color: #cfe0c5 !important; }
+html.dark [class*="text-gray-700"]   { color: #b0c9a5 !important; }
+html.dark [class*="text-gray-600"]   { color: #8ab89a !important; }
+html.dark [class*="text-gray-500"]   { color: #6a9a78 !important; }
+html.dark [class*="text-gray-400"]   { color: #4a7055 !important; }
+
+/* Ação primária (bg-gray-900) = lime no modo escuro */
+html.dark .bg-gray-900 { background-color: #c8d92a !important; color: #0d2b1e !important; }
+html.dark .hover\:bg-gray-700:hover { background-color: #b5c420 !important; color: #0d2b1e !important; }
+html.dark .hover\:bg-gray-100:hover { background-color: #1e4535 !important; color: inherit !important; }
+html.dark .hover\:bg-gray-50:hover  { background-color: #163025 !important; }
+
+/* Inputs */
+html.dark input, html.dark textarea, html.dark select {
+  background-color: var(--input-bg) !important;
+  color: var(--foreground) !important;
+  border-color: var(--input-border) !important;
 }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
+html.dark ::-webkit-scrollbar-thumb { background: #2d5a3d; }
 
 textarea { resize: vertical; }
 
-/* Safe area para iOS (barra home no iPhone) */
 .safe-area-pb {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Padding inferior do main para não ficar atrás do BottomNav + safe area iOS */
 @media (max-width: 767px) {
   .mobile-main-pb {
     padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
@@ -53,4 +138,50 @@ textarea { resize: vertical; }
 
 html {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Badges de status — tema verde/lima/roxo/coral ──────────────────────── */
+.status-ideia     { background: rgba(106,154,120,0.15); color: #6a9a78; }
+.status-aprovado  { background: rgba(200,217,42,0.15);  color: #a8b820; }
+.status-roteiro   { background: rgba(155,143,212,0.18); color: #9b8fd4; }
+.status-edicao    { background: rgba(251,191,36,0.15);  color: #d4a017; }
+.status-pronto    { background: rgba(110,231,183,0.15); color: #2d9e7a; }
+.status-agendado  { background: rgba(155,143,212,0.18); color: #9b8fd4; }
+.status-publicado { background: rgba(200,217,42,0.2);   color: #8faa10; }
+.status-revisar   { background: rgba(251,191,36,0.12);  color: #c49010; }
+.status-descartado{ background: rgba(240,96,128,0.12);  color: #f06080; }
+
+html.dark .status-ideia     { background: rgba(106,154,120,0.15); color: #8ab89a; }
+html.dark .status-aprovado  { background: rgba(200,217,42,0.15);  color: #c8d92a; }
+html.dark .status-roteiro   { background: rgba(155,143,212,0.18); color: #b8afe8; }
+html.dark .status-edicao    { background: rgba(251,191,36,0.15);  color: #fbbf24; }
+html.dark .status-pronto    { background: rgba(110,231,183,0.15); color: #6ee7b7; }
+html.dark .status-agendado  { background: rgba(155,143,212,0.18); color: #b8afe8; }
+html.dark .status-publicado { background: rgba(200,217,42,0.2);   color: #c8d92a; }
+html.dark .status-revisar   { background: rgba(251,191,36,0.12);  color: #fbbf24; }
+html.dark .status-descartado{ background: rgba(240,96,128,0.12);  color: #f06080; }
+
+/* ── Section label — padrão editorial do estúdio ─────────────────────── */
+.section-label {
+  font-family: var(--font-syne, var(--font-geist-sans)), sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lime, #c8d92a);
+}
+
+/* ── Micro-animações em cards interativos ────────────────────────────── */
+.card-interactive {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.card-interactive:hover {
+  transform: translateY(-2px);
+}
+
+/* ── Print styles ─────────────────────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+  body { font-size: 12px; background: white; color: black; }
+  @page { margin: 1.5cm; }
 }

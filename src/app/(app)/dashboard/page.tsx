@@ -1,5 +1,7 @@
+export const dynamic = "force-dynamic";
+
 import { prisma } from "@/lib/db/client";
-import { Lightbulb, BookOpen, CalendarDays, TrendingUp, AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { Lightbulb, BookOpen, CalendarDays, TrendingUp, AlertCircle, CheckCircle2, Clock, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { STATUS_CONFIG, FORMATOS_CONFIG } from "@/lib/constants";
 import { CONFIG } from "@/lib/config";
@@ -7,16 +9,14 @@ import { format, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const FRASES_MOT = [
-  "Seu conteúdo de hoje pode ser sua venda de amanhã. 🚀",
-  "Consistência bate talento quando talento não é consistente. 💪",
-  "O algoritmo ama quem aparece. Apareça! 📲",
-  "Não desista de criar — desista de perfeição. 🎯",
-  "Uma legenda por dia mantece o cliente por perto. ✍️",
-  "Hoje você posta, amanhã você vende, depois você descansa (talvez). 😄",
-  "Cada post é uma sementinha. Não para de regar! 🌱",
-  "Feito é melhor que perfeito — pergunta pra qualquer iPhone seminovo. 😂",
-  "Você não cria conteúdo por acaso. Você cria por estratégia. 🎬",
-  "Quem conta sua história não precisa que o concorrente conte a dele. 🏆",
+  "Seu conteúdo de hoje pode ser sua venda de amanhã.",
+  "Consistência bate talento quando talento não é consistente.",
+  "O algoritmo ama quem aparece. Apareça!",
+  "Não desista de criar. Desista de perfeição.",
+  "Uma legenda por dia mantece o cliente por perto.",
+  "Feito é melhor que perfeito. Pergunta pra qualquer iPhone seminovo.",
+  "Você não cria conteúdo por acaso. Você cria por estratégia.",
+  "Quem conta sua história não precisa que o concorrente conte a dele.",
 ];
 
 const { publicados: META_PUBLICADOS_90D } = CONFIG.metas;
@@ -32,8 +32,8 @@ export default async function Dashboard() {
   const [totalTemas, totalConteudos, agendados, aprovados, proximosNaoGravados, publicadosMes, proximosConteudos, publicadosPorDia] = await Promise.all([
     prisma.tema.count(),
     prisma.conteudo.count(),
-    prisma.conteudo.count({ where: { status: "AGENDADO" } }),
-    prisma.conteudo.count({ where: { status: "APROVADO" } }),
+    prisma.conteudo.count({ where: { dataplanejada: { not: null } } }),
+    prisma.conteudo.count({ where: { status: { in: ["APROVADO", "ROTEIRO_PRONTO", "PRONTO_PUBLICAR", "AGENDADO"] } } }),
     prisma.conteudo.count({
       where: {
         dataplanejada: { gte: hoje, lte: new Date(hoje.getTime() + 2 * 24 * 60 * 60 * 1000) },
@@ -42,10 +42,7 @@ export default async function Dashboard() {
       },
     }),
     prisma.conteudo.count({
-      where: {
-        status: "PUBLICADO",
-        dataplanejada: { gte: inicioMes, lte: fimMes },
-      },
+      where: { status: "PUBLICADO", dataplanejada: { gte: inicioMes, lte: fimMes } },
     }),
     prisma.conteudo.findMany({
       where: {
@@ -68,10 +65,10 @@ export default async function Dashboard() {
   });
 
   const stats = [
-    { label: "Temas criados",   value: totalTemas,     icon: Lightbulb,    href: "/temas",      cor: "bg-blue-50 text-blue-600" },
-    { label: "Conteúdos",       value: totalConteudos, icon: BookOpen,     href: "/biblioteca", cor: "bg-purple-50 text-purple-600" },
-    { label: "Agendados",       value: agendados,      icon: CalendarDays, href: "/calendario", cor: "bg-orange-50 text-orange-600" },
-    { label: "Aprovados",       value: aprovados,      icon: TrendingUp,   href: "/roteiros",   cor: "bg-green-50 text-green-600" },
+    { label: "Temas criados",  value: totalTemas,     icon: Lightbulb,    href: "/temas",      cor: "#c8d92a",  corBg: "rgba(200,217,42,0.12)" },
+    { label: "Conteúdos",      value: totalConteudos, icon: BookOpen,     href: "/biblioteca", cor: "#9b8fd4",  corBg: "rgba(155,143,212,0.12)" },
+    { label: "No calendário",  value: agendados,      icon: CalendarDays, href: "/calendario", cor: "#f06080",  corBg: "rgba(240,96,128,0.12)" },
+    { label: "Aprovados",      value: aprovados,      icon: TrendingUp,   href: "/roteiros",   cor: "#6ee7b7",  corBg: "rgba(110,231,183,0.12)" },
   ];
 
   const progMes = META_MES > 0 ? Math.min(100, (publicadosMes / META_MES) * 100) : 0;
@@ -80,7 +77,6 @@ export default async function Dashboard() {
   const fraseIdx = hoje.getDate() % FRASES_MOT.length;
   const fraseMot = FRASES_MOT[fraseIdx];
 
-  // Sparkline: publicações acumuladas por dia no mês
   const diasNoMes = fimMes.getDate();
   const contagemPorDia = Array(diasNoMes).fill(0);
   for (const p of publicadosPorDia) {
@@ -99,16 +95,26 @@ export default async function Dashboard() {
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
-      <div className="mb-6 flex items-start justify-between gap-3">
+
+      {/* Header */}
+      <div className="mb-7 flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Bom dia! 👋</h1>
-          <p className="text-gray-500 mt-1 text-sm">Aqui está o resumo do seu Studio de Conteúdo.</p>
+          <p className="section-label mb-1">· Studio de Conteúdo</p>
+          <h1
+            className="text-2xl md:text-3xl font-bold"
+            style={{ color: "var(--foreground)", fontFamily: "var(--font-syne, inherit)", letterSpacing: "-0.01em" }}
+          >
+            Bom dia! 👋
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>Aqui está o resumo do seu estúdio.</p>
         </div>
         {proximosNaoGravados > 0 && (
           <Link href="/calendario"
-            className="flex items-center gap-2 text-xs bg-amber-50 border border-amber-200 text-amber-700 px-3 py-2 rounded-lg hover:bg-amber-100 transition-colors font-medium shrink-0">
-            <AlertCircle size={13} className="text-amber-500 shrink-0" />
-            <span className="hidden sm:inline">{proximosNaoGravados} conteúdo{proximosNaoGravados > 1 ? "s" : ""} agendado{proximosNaoGravados > 1 ? "s" : ""} nos próximos 2 dias sem gravação</span>
+            className="card-interactive flex items-center gap-2 text-xs px-3 py-2 rounded-lg font-medium shrink-0"
+            style={{ background: "rgba(240,96,128,0.1)", border: "1px solid rgba(240,96,128,0.25)", color: "#f06080" }}
+          >
+            <AlertCircle size={13} className="shrink-0" />
+            <span className="hidden sm:inline">{proximosNaoGravados} conteúdo{proximosNaoGravados > 1 ? "s" : ""} sem gravação nos próx. 2 dias</span>
             <span className="sm:hidden">{proximosNaoGravados} sem gravação</span>
           </Link>
         )}
@@ -116,51 +122,73 @@ export default async function Dashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        {stats.map(({ label, value, icon: Icon, href, cor }) => (
-          <Link key={label} href={href} className="group block border border-gray-100 rounded-xl p-3 md:p-4 hover:border-gray-300 transition-colors bg-white">
-            <div className={`w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center mb-2 md:mb-3 ${cor}`}>
-              <Icon size={16} />
+        {stats.map(({ label, value, icon: Icon, href, cor, corBg }) => (
+          <Link
+            key={label}
+            href={href}
+            className="card-interactive block rounded-xl p-3 md:p-4 relative overflow-hidden"
+            style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}
+          >
+            {/* Barra de cor no topo */}
+            <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-xl" style={{ background: cor }} />
+            <div
+              className="w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center mb-3"
+              style={{ background: corBg }}
+            >
+              <Icon size={16} style={{ color: cor }} />
             </div>
-            <div className="text-xl md:text-2xl font-bold text-gray-900">{value}</div>
-            <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+            <div
+              className="text-2xl md:text-3xl font-bold"
+              style={{ color: "var(--foreground)", fontFamily: "var(--font-syne, inherit)" }}
+            >
+              {value}
+            </div>
+            <div className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>{label}</div>
           </Link>
         ))}
       </div>
 
-      {/* Próximos + Progresso do mês */}
+      {/* Próximos + Progresso */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
 
-        {/* Próximos conteúdos */}
-        <div className="border border-gray-100 rounded-xl overflow-hidden bg-white">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        {/* Próximos 7 dias */}
+        <div className="rounded-xl overflow-hidden" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
+          <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--card-border)" }}>
             <div className="flex items-center gap-2">
-              <Clock size={13} className="text-gray-400" />
-              <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Próximos 7 dias</span>
+              <Clock size={13} style={{ color: "var(--muted)" }} />
+              <span className="section-label">Próximos 7 dias</span>
             </div>
-            <Link href="/calendario" className="text-[11px] text-gray-400 hover:text-gray-700 transition-colors">Ver calendário →</Link>
+            <Link href="/calendario" className="text-[11px] flex items-center gap-1 transition-colors" style={{ color: "var(--muted)" }}>
+              Ver calendário <ArrowRight size={10} />
+            </Link>
           </div>
           {proximosConteudos.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-gray-300">
-              <CalendarDays size={28} className="mb-2" />
+            <div className="flex flex-col items-center justify-center py-8" style={{ color: "var(--muted)" }}>
+              <CalendarDays size={28} className="mb-2 opacity-40" />
               <p className="text-xs">Nenhum conteúdo agendado</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <div>
               {proximosConteudos.map((c) => {
-                const s = STATUS_CONFIG[c.status] ?? { label: c.status, cor: "bg-gray-100 text-gray-600", dot: "#9ca3af" };
+                const s = STATUS_CONFIG[c.status] ?? { label: c.status, cor: "status-ideia", dot: "#6a9a78" };
                 const fmt = FORMATOS_CONFIG[c.formato];
                 const data = c.dataplanejada ? new Date(c.dataplanejada as unknown as string) : null;
                 const diffDias = data ? differenceInCalendarDays(data, hoje) : 99;
                 const dataLabel = diffDias === 0 ? "Hoje" : diffDias === 1 ? "Amanhã" : data ? format(data, "d MMM", { locale: ptBR }) : "";
-                const urgenciaCor = diffDias <= 1 ? "text-red-500" : diffDias <= 5 ? "text-amber-500" : "text-green-600";
+                const urgenciaCor = diffDias <= 1 ? "#f06080" : diffDias <= 5 ? "#fbbf24" : "#c8d92a";
                 return (
-                  <Link key={c.id} href="/calendario" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors">
-                    <div className={`text-[10px] font-bold min-w-[44px] ${urgenciaCor}`}>
+                  <Link
+                    key={c.id}
+                    href="/calendario"
+                    className="card-interactive flex items-center gap-3 px-4 py-2.5 transition-colors"
+                    style={{ borderBottom: "1px solid var(--card-border)" }}
+                  >
+                    <div className="text-[10px] font-bold min-w-[44px]" style={{ color: urgenciaCor }}>
                       {dataLabel}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium text-gray-900 truncate">{c.titulo}</div>
-                      {fmt && <div className="text-[10px] text-gray-400">{fmt.label}</div>}
+                      <div className="text-xs font-medium truncate" style={{ color: "var(--foreground)" }}>{c.titulo}</div>
+                      {fmt && <div className="text-[10px]" style={{ color: "var(--muted)" }}>{fmt.label}</div>}
                     </div>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${s.cor}`}>{s.label}</span>
                   </Link>
@@ -171,22 +199,32 @@ export default async function Dashboard() {
         </div>
 
         {/* Progresso do mês */}
-        <div className="border border-gray-100 rounded-xl overflow-hidden bg-white">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        <div className="rounded-xl overflow-hidden" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
+          <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--card-border)" }}>
             <div className="flex items-center gap-2">
-              <CheckCircle2 size={13} className="text-gray-400" />
-              <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Publicados em {nomeMesCapitalizado}</span>
+              <CheckCircle2 size={13} style={{ color: "var(--muted)" }} />
+              <span className="section-label">Publicados em {nomeMesCapitalizado}</span>
             </div>
-            <Link href="/biblioteca" className="text-[11px] text-gray-400 hover:text-gray-700 transition-colors">Ver biblioteca →</Link>
+            <Link href="/biblioteca" className="text-[11px] flex items-center gap-1 transition-colors" style={{ color: "var(--muted)" }}>
+              Ver biblioteca <ArrowRight size={10} />
+            </Link>
           </div>
           <div className="p-5">
             <div className="flex items-end gap-2 mb-3">
-              <span className="text-4xl font-bold text-gray-900">{publicadosMes}</span>
+              <span
+                className="text-4xl font-bold"
+                style={{ color: "var(--foreground)", fontFamily: "var(--font-syne, inherit)" }}
+              >
+                {publicadosMes}
+              </span>
               {META_MES > 0 && (
-                <span className="text-sm text-gray-400 mb-1">/ {META_MES} meta</span>
+                <span className="text-sm mb-1" style={{ color: "var(--muted)" }}>/ {META_MES} meta</span>
               )}
               {META_MES > 0 && (
-                <span className="text-sm font-semibold mb-1 ml-auto" style={{ color: progMes >= 100 ? "#16a34a" : progMes >= 60 ? "#2563eb" : "#f59e0b" }}>
+                <span
+                  className="text-sm font-bold mb-1 ml-auto"
+                  style={{ color: progMes >= 100 ? "#c8d92a" : progMes >= 60 ? "#9b8fd4" : "#fbbf24" }}
+                >
                   {Math.round(progMes)}%
                 </span>
               )}
@@ -199,7 +237,7 @@ export default async function Dashboard() {
                       <polyline
                         points={sparkPoints}
                         fill="none"
-                        stroke={progMes >= 100 ? "#16a34a" : progMes >= 60 ? "#2563eb" : "#f59e0b"}
+                        stroke={progMes >= 100 ? "#c8d92a" : progMes >= 60 ? "#9b8fd4" : "#fbbf24"}
                         strokeWidth="2"
                         strokeLinejoin="round"
                         strokeLinecap="round"
@@ -207,58 +245,74 @@ export default async function Dashboard() {
                     </svg>
                   </div>
                 )}
-                <div className="w-full bg-gray-100 rounded-full h-2 mb-3">
+                <div className="w-full rounded-full h-2 mb-3" style={{ background: "var(--accent)" }}>
                   <div
                     className="h-2 rounded-full transition-all"
                     style={{
                       width: `${progMes}%`,
-                      backgroundColor: progMes >= 100 ? "#16a34a" : progMes >= 60 ? "#2563eb" : "#f59e0b",
+                      background: progMes >= 100 ? "#c8d92a" : progMes >= 60 ? "#9b8fd4" : "#fbbf24",
                     }}
                   />
                 </div>
-                <p className="text-xs text-gray-500 mb-2">
+                <p className="text-xs mb-2" style={{ color: "var(--muted)" }}>
                   {progMes >= 100
                     ? "Meta do mês atingida! 🎉 Hora de comemorar!"
                     : `${META_MES - publicadosMes} publicaç${META_MES - publicadosMes !== 1 ? "ões" : "ão"} para a meta`}
                 </p>
-                <p className="text-[11px] text-gray-400 italic">{fraseMot}</p>
+                <p className="text-[11px] italic" style={{ color: "var(--muted)", opacity: 0.7 }}>{fraseMot}</p>
               </>
             )}
             {META_MES === 0 && (
-              <p className="text-xs text-gray-400">Configure a meta em <code className="text-[11px] bg-gray-100 px-1 rounded">config.ts</code></p>
+              <p className="text-xs" style={{ color: "var(--muted)" }}>Configure a meta em <code className="text-[11px] px-1 rounded" style={{ background: "var(--accent)" }}>config.ts</code></p>
             )}
           </div>
         </div>
       </div>
 
       {/* Ações rápidas */}
+      <div className="mb-2">
+        <p className="section-label mb-3">Ações rápidas</p>
+      </div>
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <Link href="/temas" className="flex flex-col items-center gap-2 p-3 md:p-4 rounded-xl border border-dashed border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-colors text-center">
-          <Lightbulb size={18} className="text-gray-400" />
-          <span className="text-xs text-gray-600 leading-tight">Novo tema</span>
-        </Link>
-        <Link href="/roteiros" className="flex flex-col items-center gap-2 p-3 md:p-4 rounded-xl border border-dashed border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-colors text-center">
-          <BookOpen size={18} className="text-gray-400" />
-          <span className="text-xs text-gray-600 leading-tight">Roteiro</span>
-        </Link>
-        <Link href="/calendario" className="flex flex-col items-center gap-2 p-3 md:p-4 rounded-xl border border-dashed border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-colors text-center">
-          <CalendarDays size={18} className="text-gray-400" />
-          <span className="text-xs text-gray-600 leading-tight">Calendário</span>
-        </Link>
+        {[
+          { href: "/temas",     label: "Novo tema",   icon: Lightbulb,    cor: "#c8d92a" },
+          { href: "/roteiros",  label: "Novo roteiro", icon: BookOpen,     cor: "#9b8fd4" },
+          { href: "/calendario",label: "Calendário",   icon: CalendarDays, cor: "#f06080" },
+        ].map(({ href, label, icon: Icon, cor }) => (
+          <Link
+            key={href}
+            href={href}
+            className="card-interactive flex flex-col items-center gap-2 p-3 md:p-4 rounded-xl text-center"
+            style={{ background: "var(--card-bg)", border: `1px dashed var(--card-border)` }}
+          >
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${cor}18` }}>
+              <Icon size={17} style={{ color: cor }} />
+            </div>
+            <span className="text-xs font-medium" style={{ color: "var(--muted)" }}>{label}</span>
+          </Link>
+        ))}
       </div>
 
       {/* Recentes */}
       {recentes.length > 0 && (
         <div>
-          <h2 className="text-sm font-medium text-gray-900 mb-3">Adicionados recentemente</h2>
-          <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
-            {recentes.map((c) => {
-              const s = STATUS_CONFIG[c.status] ?? { label: c.status, cor: "bg-gray-100 text-gray-600" };
+          <p className="section-label mb-3">Adicionados recentemente</p>
+          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--card-border)" }}>
+            {recentes.map((c, i) => {
+              const s = STATUS_CONFIG[c.status] ?? { label: c.status, cor: "status-ideia" };
               return (
-                <Link key={c.id} href="/roteiros" className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+                <Link
+                  key={c.id}
+                  href="/roteiros"
+                  className="card-interactive flex items-center justify-between px-4 py-3"
+                  style={{
+                    background: "var(--card-bg)",
+                    borderBottom: i < recentes.length - 1 ? "1px solid var(--card-border)" : "none",
+                  }}
+                >
                   <div>
-                    <div className="text-sm font-medium text-gray-900">{c.titulo}</div>
-                    {c.tema && <div className="text-xs text-gray-400">{c.tema.titulo}</div>}
+                    <div className="text-sm font-medium" style={{ color: "var(--foreground)" }}>{c.titulo}</div>
+                    {c.tema && <div className="text-xs" style={{ color: "var(--muted)" }}>{c.tema.titulo}</div>}
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.cor}`}>{s.label}</span>
                 </Link>

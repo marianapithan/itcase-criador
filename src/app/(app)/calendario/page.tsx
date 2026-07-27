@@ -14,6 +14,7 @@ import {
   FORMATOS_CONFIG, STATUS_CONFIG, STATUS_LIST_EDITORIAL,
   RESPONSAVEIS, getResponsavelConfig, TRAFEGO_STATUS_LIST,
 } from "@/lib/constants";
+import { useSwipe } from "@/hooks/useSwipe";
 
 type ViewMode = "hoje" | "semana" | "mes";
 
@@ -25,6 +26,8 @@ type Conteudo = {
   gravado: boolean; editado: boolean; agendadoRede: boolean; concluido: boolean;
   trafegoAtivo: boolean; trafegoStatus?: string; trafegoInicio?: string; trafegoFim?: string;
   trafegoObjetivo?: string; trafegoObs?: string;
+  metricaAlcance?: number | null; metricaImpressoes?: number | null;
+  metricaCurtidas?: number | null; metricaComentarios?: number | null; metricaSalvamentos?: number | null;
 };
 
 type Campanha = { id: string; nome: string; dataInicio: string; dataFim: string; objetivo?: string };
@@ -420,9 +423,14 @@ export default function CalendarioPage() {
   }
   function navHoje() { setRefDate(new Date()); }
 
+  const swipeHandlers = useSwipe({
+    onSwipeLeft:  () => { if (!drag && !mesoDrag) navNext(); },
+    onSwipeRight: () => { if (!drag && !mesoDrag) navPrev(); },
+  });
+
   function headerLabel() {
     if (view === "hoje") return format(refDate, "EEEE, d 'de' MMMM yyyy", { locale: ptBR });
-    if (view === "semana") return `${format(inicioSemana, "d 'de' MMM", { locale: ptBR })} — ${format(addDays(inicioSemana, 6), "d 'de' MMM yyyy", { locale: ptBR })}`;
+    if (view === "semana") return `${format(inicioSemana, "d 'de' MMM", { locale: ptBR })} a ${format(addDays(inicioSemana, 6), "d 'de' MMM yyyy", { locale: ptBR })}`;
     return format(refDate, "MMMM yyyy", { locale: ptBR });
   }
 
@@ -431,7 +439,7 @@ export default function CalendarioPage() {
 
   // ===================== RENDER =====================
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden" {...swipeHandlers}>
 
       {/* Modal de confirmação de drag */}
       {confirmDrag && (
@@ -549,7 +557,7 @@ export default function CalendarioPage() {
                     <Signal size={10} className="text-orange-500" />
                     {c.nome}
                     <span className="text-orange-400">
-                      {format(parseISO(c.dataInicio), "d/MM")} — {format(parseISO(c.dataFim), "d/MM")}
+                      {format(parseISO(c.dataInicio), "d/MM")} a {format(parseISO(c.dataFim), "d/MM")}
                     </span>
                     <button onClick={() => excluirCampanha(c.id)} className="text-orange-400 hover:text-orange-700 ml-0.5"><X size={9} /></button>
                   </div>
@@ -604,7 +612,7 @@ export default function CalendarioPage() {
                             }}
                             onClick={(e) => { e.stopPropagation(); if (!mesoDrag) abrirDetalhe(ev); }}>
                             {isAlertaGravacao(ev) && (
-                              <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 animate-pulse" title="Não gravado — próximas 48h" />
+                              <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 animate-pulse" title="Não gravado: próximas 48h" />
                             )}
                             <span className="truncate font-medium flex-1" style={{ color: cfg.text }}>{ev.titulo}</span>
                             {resp && (
@@ -770,7 +778,7 @@ export default function CalendarioPage() {
                                 </div>
                               )}
                               {isAlertaGravacao(ev) && (
-                                <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500 flex items-center justify-center shadow-sm animate-pulse" title="Não gravado — próximas 48h">
+                                <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500 flex items-center justify-center shadow-sm animate-pulse" title="Não gravado: próximas 48h">
                                   <span className="text-white text-[7px] font-bold leading-none">!</span>
                                 </div>
                               )}
@@ -1051,6 +1059,34 @@ export default function CalendarioPage() {
                     })}
                   </div>
                 </div>
+
+                {/* Métricas — só aparece quando status = PUBLICADO */}
+                {selecionado.status === "PUBLICADO" && (
+                  <div className="border-t border-gray-100 pt-3">
+                    <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Métricas de desempenho</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([
+                        { campo: "metricaAlcance",     label: "Alcance" },
+                        { campo: "metricaImpressoes",   label: "Impressões" },
+                        { campo: "metricaCurtidas",     label: "Curtidas" },
+                        { campo: "metricaComentarios",  label: "Comentários" },
+                        { campo: "metricaSalvamentos",  label: "Salvamentos" },
+                      ] as { campo: keyof Conteudo; label: string }[]).map(({ campo, label }) => (
+                        <div key={campo}>
+                          <div className="text-[10px] text-gray-400 mb-1">{label}</div>
+                          <input
+                            type="number"
+                            min="0"
+                            value={(selecionado[campo] as number | null | undefined) ?? ""}
+                            onChange={(e) => atualizarCampoLocal(campo, e.target.value === "" ? "" : e.target.value)}
+                            placeholder="—"
+                            className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none text-right"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Ações */}
                 <div className="border-t border-gray-100 pt-3 space-y-2">

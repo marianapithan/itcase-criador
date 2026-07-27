@@ -45,39 +45,41 @@ export function AlertaHoje() {
   if (!aberto || pendentes.length === 0) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[500] flex items-end sm:items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+    <div className="fixed inset-0 z-[500] flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(9,30,20,0.7)", backdropFilter: "blur(4px)" }}>
+      <div className="w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl" style={{ background: "#122a1d", border: "1px solid #1e4535" }}>
         {/* Header */}
-        <div className="bg-red-50 border-b border-red-100 px-5 py-4 flex items-start gap-3">
-          <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-            <Bell size={18} className="text-red-500" />
+        <div className="px-5 py-4 flex items-start gap-3" style={{ borderBottom: "1px solid #1e4535", background: "rgba(240,96,128,0.08)" }}>
+          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(240,96,128,0.15)", border: "1px solid rgba(240,96,128,0.3)" }}>
+            <Bell size={18} style={{ color: "#f06080" }} />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 text-sm">
+            <h3 className="font-bold text-sm" style={{ color: "#e4f0de", fontFamily: "var(--font-syne, inherit)" }}>
               {pendentes.length === 1 ? "1 conteúdo pra publicar hoje!" : `${pendentes.length} conteúdos pra publicar hoje!`}
             </h3>
-            <p className="text-xs text-gray-500 mt-0.5">Marque como postado para fechar este aviso.</p>
+            <p className="text-xs mt-0.5" style={{ color: "#6a9a78" }}>Marque como postado para fechar este aviso.</p>
           </div>
-          <button onClick={() => setAberto(false)} className="text-gray-400 hover:text-gray-600 shrink-0">
+          <button onClick={() => setAberto(false)} style={{ color: "#4a7055" }} className="hover:text-[#e4f0de] transition-colors shrink-0">
             <X size={16} />
           </button>
         </div>
 
         {/* Lista */}
-        <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto">
+        <div className="max-h-64 overflow-y-auto" style={{ borderBottom: "1px solid #1e4535" }}>
           {pendentes.map((c) => {
             const fmt = FORMATOS_CONFIG[c.formato];
             return (
-              <div key={c.id} className="flex items-center gap-3 px-5 py-3">
-                <CalendarDays size={14} className="text-red-400 shrink-0" />
+              <div key={c.id} className="flex items-center gap-3 px-5 py-3" style={{ borderBottom: "1px solid #1a3828" }}>
+                <CalendarDays size={14} style={{ color: "#f06080" }} className="shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate">{c.titulo}</div>
-                  {fmt && <div className="text-[11px] text-gray-400">{fmt.label}</div>}
+                  <div className="text-sm font-medium truncate" style={{ color: "#e4f0de" }}>{c.titulo}</div>
+                  {fmt && <div className="text-[11px]" style={{ color: "#6a9a78" }}>{fmt.label}</div>}
                 </div>
                 <button
                   onClick={() => marcarPostado(c.id)}
                   disabled={concluindo === c.id}
-                  className="flex items-center gap-1 text-[11px] bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium shrink-0">
+                  className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded-lg font-bold disabled:opacity-50 shrink-0 transition-all"
+                  style={{ background: "#c8d92a", color: "#0d2b1e" }}
+                >
                   <CheckCircle2 size={11} />
                   {concluindo === c.id ? "…" : "Postado!"}
                 </button>
@@ -87,9 +89,9 @@ export function AlertaHoje() {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 bg-gray-50 border-t border-gray-100">
-          <button onClick={() => setAberto(false)} className="w-full text-xs text-gray-400 hover:text-gray-600">
-            Ver depois (vai aparecer na próxima vez)
+        <div className="px-5 py-3">
+          <button onClick={() => setAberto(false)} className="w-full text-xs transition-colors" style={{ color: "#4a7055" }}>
+            Ver depois (aparece na próxima vez)
           </button>
         </div>
       </div>
