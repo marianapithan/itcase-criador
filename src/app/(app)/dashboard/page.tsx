@@ -29,8 +29,10 @@ export default async function Dashboard() {
   const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0, 23, 59, 59);
   const em7dias = new Date(hoje.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-  const hora = hoje.getHours();
-  const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+  const horaLocal = Number(
+    new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false }).format(hoje)
+  );
+  const saudacao = horaLocal < 12 ? "Bom dia" : horaLocal < 18 ? "Boa tarde" : "Boa noite";
 
   const [proximosNaoGravados, publicadosMes, proximosConteudos, publicadosPorDia] = await Promise.all([
     prisma.conteudo.count({
