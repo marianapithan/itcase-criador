@@ -507,7 +507,7 @@ export default function CalendarioPage() {
                 const ativo = filtroFormato === k;
                 return (
                   <button key={k} onClick={() => setFiltroFormato(ativo ? null : k)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-all ${ativo ? "font-semibold" : "text-gray-500 hover:bg-gray-100 opacity-60 hover:opacity-100"}`}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-all ${ativo ? "font-semibold" : "text-gray-500 hover:bg-gray-100"}`}
                     style={ativo ? { backgroundColor: cfg.bg, color: cfg.text, border: `1px solid ${cfg.border}` } : {}}>
                     <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: cfg.dot }} />
                     {cfg.label}

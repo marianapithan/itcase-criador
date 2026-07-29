@@ -257,7 +257,7 @@ export default async function Dashboard() {
                     ? "Meta do mês atingida! 🎉 Hora de comemorar!"
                     : `${META_MES - publicadosMes} publicaç${META_MES - publicadosMes !== 1 ? "ões" : "ão"} para a meta`}
                 </p>
-                <p className="text-[11px] italic" style={{ color: "var(--muted)", opacity: 0.7 }}>{fraseMot}</p>
+                <p className="text-[11px] italic" style={{ color: "var(--muted)" }}>{fraseMot}</p>
               </>
             )}
             {META_MES === 0 && (

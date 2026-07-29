@@ -106,6 +106,61 @@ html.dark [class*="text-gray-600"]   { color: #8ab89a !important; }
 html.dark [class*="text-gray-500"]   { color: #6a9a78 !important; }
 html.dark [class*="text-gray-400"]   { color: #4a7055 !important; }
 
+/* Fundos coloridos não-cinza — precisam de override no dark mode */
+html.dark [class*="bg-green-50"]   { background-color: rgba(110,231,183,0.06) !important; }
+html.dark [class*="bg-green-100"]  { background-color: rgba(110,231,183,0.12) !important; }
+html.dark [class*="bg-amber-50"]   { background-color: rgba(251,191,36,0.07) !important; }
+html.dark [class*="bg-amber-100"]  { background-color: rgba(251,191,36,0.13) !important; }
+html.dark [class*="bg-yellow-50"]  { background-color: rgba(234,179,8,0.07) !important; }
+html.dark [class*="bg-yellow-100"] { background-color: rgba(234,179,8,0.13) !important; }
+html.dark [class*="bg-red-50"]     { background-color: rgba(240,96,128,0.07) !important; }
+html.dark [class*="bg-red-100"]    { background-color: rgba(240,96,128,0.13) !important; }
+html.dark [class*="bg-orange-50"]  { background-color: rgba(251,146,60,0.07) !important; }
+html.dark [class*="bg-orange-100"] { background-color: rgba(251,146,60,0.13) !important; }
+html.dark [class*="bg-purple-50"]  { background-color: rgba(155,143,212,0.07) !important; }
+html.dark [class*="bg-purple-100"] { background-color: rgba(155,143,212,0.13) !important; }
+html.dark [class*="bg-blue-50"]    { background-color: rgba(99,179,237,0.07) !important; }
+html.dark [class*="bg-blue-100"]   { background-color: rgba(99,179,237,0.13) !important; }
+html.dark [class*="bg-pink-50"]    { background-color: rgba(236,72,153,0.07) !important; }
+html.dark [class*="bg-pink-100"]   { background-color: rgba(236,72,153,0.13) !important; }
+
+/* Bordas coloridas */
+html.dark [class*="border-green-100"]  { border-color: rgba(110,231,183,0.15) !important; }
+html.dark [class*="border-green-200"]  { border-color: rgba(110,231,183,0.25) !important; }
+html.dark [class*="border-amber-100"]  { border-color: rgba(251,191,36,0.15) !important; }
+html.dark [class*="border-amber-200"]  { border-color: rgba(251,191,36,0.25) !important; }
+html.dark [class*="border-yellow-200"] { border-color: rgba(234,179,8,0.25) !important; }
+html.dark [class*="border-red-100"]    { border-color: rgba(240,96,128,0.15) !important; }
+html.dark [class*="border-red-200"]    { border-color: rgba(240,96,128,0.25) !important; }
+html.dark [class*="border-red-300"]    { border-color: rgba(240,96,128,0.35) !important; }
+html.dark [class*="border-orange-100"] { border-color: rgba(251,146,60,0.15) !important; }
+html.dark [class*="border-orange-200"] { border-color: rgba(251,146,60,0.25) !important; }
+html.dark [class*="border-purple-100"] { border-color: rgba(155,143,212,0.15) !important; }
+html.dark [class*="border-purple-200"] { border-color: rgba(155,143,212,0.25) !important; }
+html.dark [class*="border-blue-100"]   { border-color: rgba(99,179,237,0.15) !important; }
+html.dark [class*="border-blue-200"]   { border-color: rgba(99,179,237,0.25) !important; }
+html.dark [class*="border-pink-100"]   { border-color: rgba(236,72,153,0.15) !important; }
+html.dark [class*="border-pink-200"]   { border-color: rgba(236,72,153,0.25) !important; }
+
+/* Texto colorido — versões mais claras para fundo escuro */
+html.dark [class*="text-red-700"]     { color: #fca5a5 !important; }
+html.dark [class*="text-red-600"]     { color: #f87171 !important; }
+html.dark [class*="text-red-500"]     { color: #f06080 !important; }
+html.dark [class*="text-amber-700"]   { color: #fde68a !important; }
+html.dark [class*="text-amber-600"]   { color: #fcd34d !important; }
+html.dark [class*="text-yellow-700"]  { color: #fef08a !important; }
+html.dark [class*="text-orange-700"]  { color: #fdba74 !important; }
+html.dark [class*="text-orange-600"]  { color: #fb923c !important; }
+html.dark [class*="text-orange-500"]  { color: #f97316 !important; }
+html.dark [class*="text-purple-700"]  { color: #c4b5fd !important; }
+html.dark [class*="text-purple-600"]  { color: #a78bfa !important; }
+html.dark [class*="text-blue-600"]    { color: #93c5fd !important; }
+html.dark [class*="text-blue-500"]    { color: #60a5fa !important; }
+html.dark [class*="text-green-700"]   { color: #86efac !important; }
+html.dark [class*="text-green-600"]   { color: #4ade80 !important; }
+html.dark [class*="text-green-500"]   { color: #22c55e !important; }
+html.dark [class*="text-pink-700"]    { color: #f9a8d4 !important; }
+
 /* Ação primária (bg-gray-900) = lime no modo escuro */
 html.dark .bg-gray-900 { background-color: #c8d92a !important; color: #0d2b1e !important; }
 html.dark .hover\:bg-gray-700:hover { background-color: #b5c420 !important; color: #0d2b1e !important; }
