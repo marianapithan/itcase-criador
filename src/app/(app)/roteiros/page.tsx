@@ -117,6 +117,45 @@ const CATEGORIA_COR: Record<string, string> = {
 type Filtro = "todos" | "banco" | "revisar" | "aprovados" | "descartados";
 type TelaAcao = null | "aprovar" | "descartar";
 
+function RoteiroMD({ texto }: { texto: string }) {
+  function inline(text: string): React.ReactNode {
+    const parts: React.ReactNode[] = [];
+    const re = /\*\*(.+?)\*\*|\*(.+?)\*/g;
+    let last = 0, ki = 0;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index > last) parts.push(text.slice(last, m.index));
+      if (m[1] !== undefined) parts.push(<strong key={ki++}>{m[1]}</strong>);
+      else parts.push(<em key={ki++}>{m[2]}</em>);
+      last = re.lastIndex;
+    }
+    if (last < text.length) parts.push(text.slice(last));
+    return parts.length === 1 && typeof parts[0] === "string" ? parts[0] : <>{parts}</>;
+  }
+
+  return (
+    <div className="space-y-1">
+      {texto.split("\n").map((line, i) => {
+        if (/^-{3,}$/.test(line.trim()))
+          return <hr key={i} className="my-3 border-gray-200" />;
+        if (line.startsWith("### "))
+          return <p key={i} className="text-xs font-bold uppercase tracking-widest text-gray-400 mt-4 mb-0.5">{inline(line.slice(4))}</p>;
+        if (line.startsWith("## "))
+          return <p key={i} className="text-sm font-bold uppercase tracking-wide text-gray-600 mt-4 mb-0.5">{inline(line.slice(3))}</p>;
+        if (line.startsWith("# "))
+          return <p key={i} className="text-base font-bold text-gray-800 mt-4 mb-1">{inline(line.slice(2))}</p>;
+        if (line.startsWith("> "))
+          return <div key={i} className="border-l-2 border-gray-300 pl-3 my-1.5 italic text-gray-500 text-sm">{inline(line.slice(2))}</div>;
+        if (/^[-*] /.test(line))
+          return <div key={i} className="flex gap-2 text-sm text-gray-700 leading-relaxed"><span className="text-gray-400 shrink-0 mt-px">•</span><span>{inline(line.slice(2))}</span></div>;
+        if (line.trim() === "")
+          return <div key={i} className="h-2" />;
+        return <p key={i} className="text-sm text-gray-700 leading-relaxed">{inline(line)}</p>;
+      })}
+    </div>
+  );
+}
+
 function RoteirosPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -912,7 +951,9 @@ function RoteirosPageInner() {
                     </div>
                   ) : (
                     <div className="relative group">
-                      <div className="bg-gray-50 rounded-xl p-5 whitespace-pre-wrap text-sm text-gray-700 leading-relaxed border border-gray-100">{selecionado.roteiro}</div>
+                      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+                        <RoteiroMD texto={selecionado.roteiro} />
+                      </div>
                       <button onClick={() => { setRoteiroTemp(selecionado.roteiro ?? ""); setEditandoRoteiro(true); }}
                         className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-white rounded-lg shadow-sm border border-gray-200 text-gray-500 hover:text-gray-700">
                         <Pencil size={12} />
@@ -1034,8 +1075,8 @@ function RoteirosPageInner() {
                   {mostrarVersaoAnterior ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                 </button>
                 {mostrarVersaoAnterior && (
-                  <div className="p-4 bg-amber-50/40 text-xs text-gray-600 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto border-t border-amber-100">
-                    {selecionado.roteiroAnterior}
+                  <div className="p-4 bg-amber-50/40 max-h-48 overflow-y-auto border-t border-amber-100">
+                    <RoteiroMD texto={selecionado.roteiroAnterior ?? ""} />
                   </div>
                 )}
               </div>
