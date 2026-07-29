@@ -57,12 +57,12 @@ export function Sidebar() {
   return (
     <aside className="w-56 shrink-0 flex flex-col h-full" style={{ background: "var(--sidebar-bg)", borderRight: "1px solid #1e4535" }}>
       {/* Logo */}
-      <div className="px-4 py-5" style={{ borderBottom: "1px solid #1e4535" }}>
+      <div className="px-4 py-5" style={{ borderBottom: "1px solid #1e4535", background: "linear-gradient(135deg, rgba(139,116,200,0.10) 0%, transparent 70%)" }}>
         <div className="flex items-center gap-2">
           <Sparkles size={18} style={{ color: "#c8d92a" }} />
           <div>
-            <div className="font-bold text-sm leading-tight" style={{ color: "#e4f0de", fontFamily: "var(--font-syne, inherit)" }}>{CONFIG.nome}</div>
-            <div className="text-[11px] leading-tight" style={{ color: "#6a9a78" }}>{CONFIG.tagline}</div>
+            <div className="font-bold text-sm leading-tight gradient-text-brand" style={{ fontFamily: "var(--font-syne, inherit)" }}>{CONFIG.nome}</div>
+            <div className="text-[11px] leading-tight" style={{ color: "#9b8fd4" }}>{CONFIG.tagline}</div>
           </div>
         </div>
       </div>

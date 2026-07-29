@@ -94,12 +94,12 @@ export default async function Dashboard() {
       {/* Header */}
       <div className="mb-7 flex items-start justify-between gap-3">
         <div>
-          <p className="section-label mb-1">· Studio de Conteúdo</p>
+          <p className="section-label-purple mb-1">· Studio de Conteúdo</p>
           <h1
             className="text-2xl md:text-3xl font-bold"
-            style={{ color: "var(--foreground)", fontFamily: "var(--font-syne, inherit)", letterSpacing: "-0.01em" }}
+            style={{ fontFamily: "var(--font-syne, inherit)", letterSpacing: "-0.01em", color: "var(--foreground)" }}
           >
-            {saudacao}, {CONFIG.nome}!
+            {saudacao}, <span className="gradient-text-brand">{CONFIG.nome}!</span>
           </h1>
           <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>Aqui está o resumo do seu estúdio.</p>
         </div>
@@ -117,7 +117,7 @@ export default async function Dashboard() {
 
       {/* O que vamos criar hoje? */}
       <div className="mb-6">
-        <p className="section-label mb-3">O que vamos criar hoje?</p>
+        <p className="section-label-purple mb-3">O que vamos criar hoje?</p>
         <div className="grid grid-cols-3 gap-3">
           {[
             { href: "/roteiros?novo=1", label: "Reels",  sub: "Vídeo curto vertical",  icon: Video,      cor: "#f06080", corBg: "rgba(240,96,128,0.12)" },
