@@ -11,12 +11,48 @@ const SISTEMA =
 
 // ── Utilitários ───────────────────────────────────────────────────────────
 
+function repararJSON(s: string): string {
+  // Remove trailing comma antes de fechar
+  s = s.replace(/,(\s*[}\]])/g, "$1");
+  // Se o JSON está truncado no meio de uma string, fecha a string e o objeto
+  if (!s.trimEnd().endsWith("}")) {
+    // Conta chaves abertas vs fechadas
+    let abertas = 0;
+    let emString = false;
+    let escaping = false;
+    for (const ch of s) {
+      if (escaping) { escaping = false; continue; }
+      if (ch === "\\") { escaping = true; continue; }
+      if (ch === '"') { emString = !emString; continue; }
+      if (!emString) {
+        if (ch === "{") abertas++;
+        if (ch === "}") abertas--;
+      }
+    }
+    // Se estava no meio de uma string, fecha ela primeiro
+    if (emString) s += '"';
+    // Remove trailing comma/colon incompleto
+    s = s.replace(/[,:]?\s*$/, "");
+    // Fecha os objetos que ficaram abertos
+    for (let i = 0; i < abertas; i++) s += "}";
+  }
+  return s;
+}
+
 function extrairJSON(texto: string): Record<string, unknown> | null {
   let s = texto.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-  s = s.replace(/,(\s*[}\]])/g, "$1");
-  try { return JSON.parse(s); } catch { /* continua */ }
+  // Tenta parse direto
+  try { return JSON.parse(repararJSON(s)); } catch { /* continua */ }
+  // Extrai o maior bloco de objeto
   const m = s.match(/\{[\s\S]*\}/);
-  if (m) { try { return JSON.parse(m[0].replace(/,(\s*[}\]])/g, "$1")); } catch { /* continua */ } }
+  if (m) {
+    try { return JSON.parse(repararJSON(m[0])); } catch { /* continua */ }
+  }
+  // Última tentativa: extrai até o último campo válido e fecha
+  const mParcial = s.match(/^\{[\s\S]+/);
+  if (mParcial) {
+    try { return JSON.parse(repararJSON(mParcial[0])); } catch { /* continua */ }
+  }
   console.error("[extrairJSON] falhou:", s.slice(0, 300));
   return null;
 }
@@ -182,7 +218,7 @@ Entrevista: produtos="${R.empresa_produtos || ""}" | como vende="${R.empresa_com
 Retorne SOMENTE este JSON (arrays como texto separado por vírgula):
 {"produtos":"...","como_vende":"...","ticket":"...","produto_entrada":"...","produto_premium":"...","diferenciais":"item1, item2, item3","posicionamento_atual":"...","posicionamento_desejado":"...","valores":"val1, val2, val3","personalidade":"...","promessa":"...","transformacao":"..."}`;
 
-  const r = await chamarIA({ funcionalidade: "estrategia-empresa", sistema: SISTEMA, prompt, maxTokens: 400 });
+  const r = await chamarIA({ funcionalidade: "estrategia-empresa", sistema: SISTEMA, prompt, maxTokens: 700 });
   if (!r.sucesso) return NextResponse.json({ erro: `IA empresa: ${r.erro}` }, { status: 500 });
 
   const raw = extrairJSON(r.conteudo);
@@ -204,7 +240,7 @@ Entrevista: perfil="${R.persona_perfil || ""}" | rotina="${R.persona_rotina || "
 Retorne SOMENTE este JSON (arrays como texto separado por vírgula):
 {"nome":"[nome feminino real]","perfil":"...","rotina":"...","objetivos":"obj1, obj2, obj3","sonhos":"s1, s2","medos":"m1, m2, m3","frustracoes":"f1, f2","dores_emocionais":"d1, d2","dores_financeiras":"d1, d2","dores_praticas":"d1, d2","desejos_conscientes":"d1, d2","desejos_inconscientes":"d1, d2","gatilhos_compra":"g1, g2, g3","valores":"v1, v2","linguagem":"...","palavras_usa":"p1, p2, p3","palavras_odeia":"p1, p2","influenciadores":"i1, i2","conteudo_consome":"c1, c2","pesquisa_google":"b1, b2, b3","salva_instagram":"t1, t2","faz_confiar":"f1, f2, f3","faz_desistir":"f1, f2"}`;
 
-  const r = await chamarIA({ funcionalidade: "estrategia-persona", sistema: SISTEMA, prompt, maxTokens: 600 });
+  const r = await chamarIA({ funcionalidade: "estrategia-persona", sistema: SISTEMA, prompt, maxTokens: 1400 });
   if (!r.sucesso) return NextResponse.json({ erro: `IA persona: ${r.erro}` }, { status: 500 });
 
   const raw = extrairJSON(r.conteudo);
@@ -267,7 +303,7 @@ async function gerarPosicionamento(R: Record<string, string>) {
 Retorne SOMENTE este JSON (arrays como texto separado por vírgula):
 {"arquetipo":"...","tom_voz":"...","personalidade":"...","pilares_editoriais":"p1, p2, p3, p4","promessa_central":"...","big_idea":"...","mecanismo_unico":"...","diferencial_competitivo":"...","crencas_construir":"c1, c2, c3","crencas_quebrar":"c1, c2","inimigo_comum":"..."}`;
 
-  const r = await chamarIA({ funcionalidade: "estrategia-posicionamento", sistema: SISTEMA, prompt, maxTokens: 400 });
+  const r = await chamarIA({ funcionalidade: "estrategia-posicionamento", sistema: SISTEMA, prompt, maxTokens: 700 });
   if (!r.sucesso) return NextResponse.json({ erro: `IA posicionamento: ${r.erro}` }, { status: 500 });
 
   const raw = extrairJSON(r.conteudo);
@@ -289,7 +325,7 @@ Entrevista: abertura="${R.criadora_abertura || ""}" | frases="${R.criadora_frase
 Retorne SOMENTE este JSON (arrays como texto separado por vírgula):
 {"assinatura_abertura":"como ela abre os vídeos em 1 frase","frases_assinatura":"frase1, frase2, frase3","transicoes_edicao":"padrão de edição e transição","formatos_favoritos":"formato1, formato2, formato3","ganchos_abertura":"gancho1, gancho2, gancho3","estilo_visual":"descrição do estilo visual","elementos_recorrentes":"elemento1, elemento2, elemento3","voz_na_camera":"como ela se comporta na câmera"}`;
 
-  const r = await chamarIA({ funcionalidade: "estrategia-criadora", sistema: SISTEMA, prompt, maxTokens: 400 });
+  const r = await chamarIA({ funcionalidade: "estrategia-criadora", sistema: SISTEMA, prompt, maxTokens: 700 });
   if (!r.sucesso) return NextResponse.json({ erro: `IA criadora: ${r.erro}` }, { status: 500 });
 
   const raw = extrairJSON(r.conteudo);
