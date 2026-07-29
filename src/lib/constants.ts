@@ -4,6 +4,7 @@ export const STATUS_CONFIG: Record<string, { label: string; cor: string; dot: st
   ROTEIRO_PRONTO:     { label: "Roteiro pronto",       cor: "status-roteiro",   dot: "#9b8fd4" },
   GERADO_IA:          { label: "Roteiro pronto",       cor: "status-roteiro",   dot: "#9b8fd4" },
   EM_EDICAO:          { label: "Em edição",            cor: "status-edicao",    dot: "#fbbf24" },
+  EM_PRODUCAO:        { label: "Em produção",          cor: "status-edicao",    dot: "#fbbf24" },
   PRONTO_PUBLICAR:    { label: "Pronto para publicar", cor: "status-pronto",    dot: "#6ee7b7" },
   AGENDADO:           { label: "Agendado",             cor: "status-agendado",  dot: "#9b8fd4" },
   PUBLICADO:          { label: "Publicado",            cor: "status-publicado", dot: "#c8d92a" },

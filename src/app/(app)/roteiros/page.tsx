@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Sparkles, FileText, Plus, ChevronRight, X, Check, Clock, Trash2, CalendarPlus, ChevronDown, ChevronUp, Pencil, Copy, Hash, Eye, EyeOff, Copy as CopyIcon, Calendar, CalendarX } from "lucide-react";
 import { STATUS_CONFIG, STATUS_LIST_EDITORIAL, FORMATOS_CONFIG, RESPONSAVEIS, getResponsavelConfig } from "@/lib/constants";
 import { StatusBadge } from "@/components/StatusBadge";
+import { CONFIG } from "@/lib/config";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -20,6 +21,7 @@ type Conteudo = {
   etapaFunil?: string;
   responsavel?: string;
   dataplanejada?: string;
+  hashtags?: string;
   criadoEm: string;
 };
 type Tema = { id: string; titulo: string };
@@ -527,7 +529,7 @@ function RoteirosPageInner() {
             return (
               <button
                 key={c.id}
-                onClick={() => { setSelecionado(c); setCriandoNovo(false); setTelaAcao(null); setEditandoRoteiro(false); setEditandoLegenda(false); setHashtags(""); setMostrarPreview(false); }}
+                onClick={() => { setSelecionado(c); setCriandoNovo(false); setTelaAcao(null); setEditandoRoteiro(false); setEditandoLegenda(false); setHashtags(c.hashtags ?? ""); setMostrarPreview(false); }}
                 className={`w-full text-left p-3 rounded-lg text-xs transition-colors ${selecionado?.id === c.id && !criandoNovo ? "bg-gray-900 text-white" : "hover:bg-gray-50 text-gray-700"}`}
               >
                 <div className="font-medium line-clamp-2">{c.titulo}</div>
@@ -1027,15 +1029,15 @@ function RoteirosPageInner() {
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center text-white text-xs font-bold">IC</div>
                     <div>
-                      <div className="text-xs font-semibold text-gray-900">itcase_londrina</div>
-                      <div className="text-[10px] text-gray-400">Londrina, PR</div>
+                      <div className="text-xs font-semibold text-gray-900">{CONFIG.instagram.handle}</div>
+                      <div className="text-[10px] text-gray-400">{CONFIG.instagram.localizacao}</div>
                     </div>
                   </div>
                   <div className="w-full aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg mb-3 flex items-center justify-center">
                     <span className="text-gray-400 text-xs">{FORMATOS_CONFIG[selecionado.formato]?.label ?? selecionado.formato}</span>
                   </div>
                   <div className="text-xs text-gray-800 leading-relaxed whitespace-pre-wrap">
-                    <span className="font-semibold">itcase_londrina</span>{" "}
+                    <span className="font-semibold">{CONFIG.instagram.handle}</span>{" "}
                     {selecionado.legenda}
                   </div>
                 </div>

@@ -38,6 +38,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.trafegoFim !== undefined) data.trafegoFim = body.trafegoFim ? new Date(body.trafegoFim) : null;
   if (body.trafegoObjetivo !== undefined) data.trafegoObjetivo = body.trafegoObjetivo;
   if (body.trafegoObs !== undefined) data.trafegoObs = body.trafegoObs;
+  if (body.hashtags !== undefined) data.hashtags = body.hashtags;
 
   const conteudo = await prisma.conteudo.update({ where: { id }, data });
   return NextResponse.json(conteudo);

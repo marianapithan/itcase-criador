@@ -300,7 +300,7 @@ export default function ObjecoesPage() {
       body: JSON.stringify({
         titulo: `[Objeção] ${objecaoAtiva.texto} — ${fmtLabel}`,
         formato: roteiroData.formato === "reels" ? "Reels" : roteiroData.formato === "carrossel" ? "Carrossel" : roteiroData.formato === "stories" ? "Story" : "Post",
-        status: "Ideia",
+        status: "IDEIA",
         objetivo: "Quebra de objeção",
         etapaFunil: "Consideração",
         legenda: typeof roteiroData.roteiro.legenda === "string" ? roteiroData.roteiro.legenda : "",
@@ -333,7 +333,7 @@ export default function ObjecoesPage() {
         {objecoes.length === 0 && fase !== "analisando" ? (
           <div className="text-center py-12">
             <ShieldAlert size={36} className="text-gray-200 mx-auto mb-3" />
-            <p className="text-sm text-gray-400 mb-6">Nenhuma objeção cadastrada ainda.<br />Adicione pelo menos 5 para gerar o mapa.</p>
+            <p className="text-sm text-gray-400 mb-6">Nenhuma objeção cadastrada ainda.<br />Adicione pelo menos 3 para gerar o mapa.</p>
             <button onClick={() => setFase("cadastrar")} className="flex items-center gap-2 mx-auto px-5 py-3 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-700 transition-colors">
               <Plus size={16} />Adicionar primeira objeção
             </button>
@@ -355,7 +355,7 @@ export default function ObjecoesPage() {
               <button onClick={() => setFase("cadastrar")} className="flex items-center gap-1.5 px-3 py-2.5 border border-gray-200 text-sm font-medium text-gray-600 rounded-xl hover:bg-gray-50 transition-colors">
                 <Plus size={14} />Adicionar
               </button>
-              {objecoes.length >= 1 && (
+              {objecoes.length >= 3 && (
                 <button onClick={analisarTodas} disabled={fase === "analisando"} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-700 transition-colors disabled:opacity-50">
                   <Sparkles size={15} />
                   {temMapa ? "Reanalisar com IA" : "Analisar e gerar mapa"}

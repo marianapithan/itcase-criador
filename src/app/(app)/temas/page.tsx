@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Sparkles, ChevronRight, CheckCircle, Circle, ArrowRight } from "lucide-react";
 
 type Microtema = { id: string; titulo: string; descricao?: string; status: string };
@@ -18,18 +19,26 @@ function Badge({ status }: { status: string }) {
 }
 
 export default function TemasPage() {
+  const router = useRouter();
   const [temas, setTemas] = useState<Tema[]>([]);
   const [aberto, setAberto] = useState<string | null>(null);
   const [gerando, setGerando] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState("");
   const [novoMicro, setNovoMicro] = useState<Record<string, string>>({});
 
   async function carregar() {
-    const res = await fetch("/api/temas");
-    const data = await res.json();
-    setTemas(data);
-    setLoading(false);
+    try {
+      const res = await fetch("/api/temas");
+      if (!res.ok) throw new Error("Erro ao carregar temas");
+      const data = await res.json();
+      setTemas(data);
+    } catch {
+      setErro("Não foi possível carregar os temas. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { carregar(); }, []);
@@ -37,6 +46,7 @@ export default function TemasPage() {
   async function gerarTemas() {
     if (!prompt.trim()) return;
     setGerando(true);
+    setErro("");
     try {
       const res = await fetch("/api/temas/gerar", {
         method: "POST",
@@ -44,30 +54,39 @@ export default function TemasPage() {
         body: JSON.stringify({ prompt }),
       });
       const data = await res.json();
-      if (data.erro) { alert(data.erro); return; }
+      if (data.erro) { setErro(data.erro); return; }
       setPrompt("");
       await carregar();
+    } catch {
+      setErro("Erro ao gerar temas. Verifique sua chave de IA e tente novamente.");
     } finally {
       setGerando(false);
     }
   }
 
   async function atualizarStatus(id: string, status: string) {
-    await fetch(`/api/temas/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    await carregar();
+    try {
+      await fetch(`/api/temas/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      await carregar();
+    } catch {
+      setErro("Erro ao atualizar status.");
+    }
   }
 
   async function gerarMicrotemas(temaId: string) {
     setGerando(true);
+    setErro("");
     try {
       const res = await fetch(`/api/temas/${temaId}/microtemas/gerar`, { method: "POST" });
       const data = await res.json();
-      if (data.erro) { alert(data.erro); return; }
+      if (data.erro) { setErro(data.erro); return; }
       await carregar();
+    } catch {
+      setErro("Erro ao gerar microtemas.");
     } finally {
       setGerando(false);
     }
@@ -76,27 +95,35 @@ export default function TemasPage() {
   async function adicionarMicro(temaId: string) {
     const titulo = novoMicro[temaId]?.trim();
     if (!titulo) return;
-    await fetch(`/api/temas/${temaId}/microtemas`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ titulo }),
-    });
-    setNovoMicro((p) => ({ ...p, [temaId]: "" }));
-    await carregar();
+    try {
+      await fetch(`/api/temas/${temaId}/microtemas`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ titulo }),
+      });
+      setNovoMicro((p) => ({ ...p, [temaId]: "" }));
+      await carregar();
+    } catch {
+      setErro("Erro ao adicionar microtema.");
+    }
   }
 
   async function enviarParaCalendario(tema: Tema) {
-    await fetch("/api/conteudos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        titulo: tema.titulo,
-        descricao: tema.descricao,
-        temaId: tema.id,
-        status: "AGENDADO",
-      }),
-    });
-    window.location.href = "/calendario";
+    try {
+      await fetch("/api/conteudos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          titulo: tema.titulo,
+          descricao: tema.descricao,
+          temaId: tema.id,
+          status: "AGENDADO",
+        }),
+      });
+      router.push("/calendario");
+    } catch {
+      setErro("Erro ao enviar para o calendário.");
+    }
   }
 
   return (
@@ -107,6 +134,13 @@ export default function TemasPage() {
           <p className="text-gray-500 text-sm mt-0.5">Crie e organize os assuntos do seu conteúdo</p>
         </div>
       </div>
+
+      {erro && (
+        <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700 flex items-center justify-between gap-3">
+          <span>{erro}</span>
+          <button onClick={() => setErro("")} className="text-red-400 hover:text-red-600 shrink-0 text-xs font-medium">Fechar</button>
+        </div>
+      )}
 
       {/* Gerador */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
@@ -154,7 +188,7 @@ export default function TemasPage() {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-gray-900 text-sm">{tema.titulo}</div>
-                  {tema.descricao && <div className="text-xs text-gray-400 mt-0.5 truncate">{tema.descricao}</div>}
+                  {tema.descricao && <div className="text-xs text-gray-400 mt-0.5 line-clamp-2">{tema.descricao}</div>}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-xs text-gray-400">{tema.microtemas.length} microtemas</span>
@@ -193,7 +227,7 @@ export default function TemasPage() {
                       <button
                         onClick={() => gerarMicrotemas(tema.id)}
                         disabled={gerando}
-                        className="text-xs text-blue-600 hover:text-blue-700 disabled:opacity-40"
+                        className="text-xs text-blue-600 hover:text-blue-500 disabled:opacity-40"
                       >
                         {gerando ? "Gerando…" : "+ Gerar com IA"}
                       </button>

@@ -2,8 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { chamarIA, contextoCerebro } from "@/lib/ai/gateway";
 
+async function garantirColuna() {
+  try {
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Conteudo" ADD COLUMN "hashtags" TEXT`);
+  } catch { /* coluna já existe */ }
+}
+
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await garantirColuna();
+
   const conteudo = await prisma.conteudo.findUnique({ where: { id } });
   if (!conteudo) return new NextResponse(null, { status: 404 });
 
@@ -28,5 +36,8 @@ Regras:
   if (!resp.sucesso) return NextResponse.json({ erro: resp.erro }, { status: 500 });
 
   const hashtags = resp.conteudo.trim();
+
+  await prisma.$executeRawUnsafe(`UPDATE "Conteudo" SET hashtags = ? WHERE id = ?`, hashtags, id);
+
   return NextResponse.json({ hashtags });
 }

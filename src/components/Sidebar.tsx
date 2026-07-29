@@ -16,6 +16,7 @@ import {
   FileBarChart,
   Megaphone,
   ShieldAlert,
+  Layers,
 } from "lucide-react";
 import { CONFIG } from "@/lib/config";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -31,6 +32,7 @@ const nav = [
   { href: "/objecoes",    label: "Mapa de Objeções",    icon: ShieldAlert },
   { href: "/persona",     label: "Estudo de Público",   icon: User },
   { href: "/relatorio",   label: "Relatório PDF",       icon: FileBarChart },
+  { href: "/frameworks",  label: "Frameworks",          icon: Layers },
 ];
 
 function getCookie(name: string): string {

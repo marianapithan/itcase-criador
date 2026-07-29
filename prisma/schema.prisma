@@ -84,6 +84,7 @@ model Conteudo {
   metricaCurtidas    Int?
   metricaComentarios Int?
   metricaSalvamentos Int?
+  hashtags       String?
   criadoEm       DateTime   @default(now())
   atualizadoEm   DateTime   @updatedAt
 }

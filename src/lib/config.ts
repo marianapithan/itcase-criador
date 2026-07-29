@@ -18,6 +18,12 @@ export const CONFIG = {
     dias: 90,             // janela de tempo das metas
   },
 
+  // Instagram da marca (usado no preview de roteiros)
+  instagram: {
+    handle: "itcase_londrina",
+    localizacao: "Londrina, PR",
+  },
+
   // Contexto completo do negócio para a IA
   // Quanto mais detalhes, melhor a qualidade dos roteiros e tendências gerados
   contextoIA: `
