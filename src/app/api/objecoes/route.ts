@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
   const objecao = await prisma.objecao.create({
     data: {
       texto: body.texto,
+      contexto: body.contexto || null,
       frequencia: body.frequencia || null,
       etapaVenda: body.etapaVenda || null,
       consegueContornar: body.consegueContornar || null,

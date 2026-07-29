@@ -10,6 +10,7 @@ import {
 type Objecao = {
   id: string;
   texto: string;
+  contexto?: string;
   frequencia?: string;
   etapaVenda?: string;
   consegueContornar?: string;
@@ -223,6 +224,7 @@ export default function ObjecoesPage() {
   const [erro, setErro] = useState<string | null>(null);
 
   const [novaObjecao, setNovaObjecao] = useState("");
+  const [novoContexto, setNovoContexto] = useState("");
   const [etapaCadastro, setEtapaCadastro] = useState(0);
   const [metaFreq, setMetaFreq] = useState("");
   const [metaEtapa, setMetaEtapa] = useState("");
@@ -251,10 +253,10 @@ export default function ObjecoesPage() {
     await fetch("/api/objecoes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ texto: novaObjecao.trim(), frequencia: metaFreq, etapaVenda: metaEtapa, consegueContornar: metaContorna, clienteCompraDepois: metaCompra, respostaAtual: metaResposta || null }),
+      body: JSON.stringify({ texto: novaObjecao.trim(), contexto: novoContexto.trim() || null, frequencia: metaFreq, etapaVenda: metaEtapa, consegueContornar: metaContorna, clienteCompraDepois: metaCompra, respostaAtual: metaResposta || null }),
     });
     await carregarObjecoes();
-    setNovaObjecao(""); setMetaFreq(""); setMetaEtapa(""); setMetaContorna(""); setMetaCompra(""); setMetaResposta("");
+    setNovaObjecao(""); setNovoContexto(""); setMetaFreq(""); setMetaEtapa(""); setMetaContorna(""); setMetaCompra(""); setMetaResposta("");
     setEtapaCadastro(0);
     setSalvandoObjecao(false);
     setFase("lista");
@@ -374,39 +376,45 @@ export default function ObjecoesPage() {
   // ── FASE: Cadastrar ──────────────────────────────────────────────────────────
   if (fase === "cadastrar") {
     const perguntas = [
-      { label: "Qual objeção o cliente fala?", tipo: "texto" },
+      { label: "Qual a frase exata que o cliente usou?", tipo: "texto" },
+      { label: "Conta o contexto completo dessa situação", tipo: "textareaContexto" },
       { label: "Com que frequência você ouve isso?", tipo: "opcoes", opts: FREQUENCIAS },
       { label: "Em qual etapa da venda ela aparece?", tipo: "opcoes", opts: ETAPAS },
       { label: "Você consegue contornar essa objeção?", tipo: "opcoes", opts: CONTORNA },
       { label: "O cliente costuma comprar depois da sua resposta?", tipo: "opcoes", opts: COMPRA_DEPOIS },
       { label: "Como você responde hoje? (opcional)", tipo: "textareaOpcional" },
     ];
+    const TOTAL = perguntas.length;
     const perguntaAtual = perguntas[etapaCadastro];
-    const valores = ["", metaFreq, metaEtapa, metaContorna, metaCompra, metaResposta];
-    const setores: React.Dispatch<React.SetStateAction<string>>[] = [setNovaObjecao, setMetaFreq, setMetaEtapa, setMetaContorna, setMetaCompra, setMetaResposta];
-    const podeAvancar = etapaCadastro === 5 ? true : etapaCadastro === 0 ? novaObjecao.trim().length > 0 : valores[etapaCadastro].length > 0;
+    const valores = ["", "", metaFreq, metaEtapa, metaContorna, metaCompra, metaResposta];
+    const setores: React.Dispatch<React.SetStateAction<string>>[] = [setNovaObjecao, setNovoContexto, setMetaFreq, setMetaEtapa, setMetaContorna, setMetaCompra, setMetaResposta];
+    const podeAvancar =
+      etapaCadastro === TOTAL - 1 ? true :
+      etapaCadastro === 0 ? novaObjecao.trim().length > 0 :
+      etapaCadastro === 1 ? novoContexto.trim().length > 0 :
+      valores[etapaCadastro].length > 0;
 
     function avancar() {
-      if (etapaCadastro < 5) { setEtapaCadastro(e => e + 1); return; }
+      if (etapaCadastro < TOTAL - 1) { setEtapaCadastro(e => e + 1); return; }
       salvarObjecao();
     }
 
     return (
       <div className="p-4 md:p-8 max-w-xl mx-auto pb-24 md:pb-8">
-        <button onClick={() => { setFase("lista"); setEtapaCadastro(0); setNovaObjecao(""); setMetaFreq(""); setMetaEtapa(""); setMetaContorna(""); setMetaCompra(""); setMetaResposta(""); }} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-6 transition-colors">
+        <button onClick={() => { setFase("lista"); setEtapaCadastro(0); setNovaObjecao(""); setNovoContexto(""); setMetaFreq(""); setMetaEtapa(""); setMetaContorna(""); setMetaCompra(""); setMetaResposta(""); }} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-6 transition-colors">
           <ArrowLeft size={15} />Voltar
         </button>
 
         <div className="mb-6">
           <div className="flex gap-1 mb-4">
-            {[0, 1, 2, 3, 4, 5].map(i => (
+            {Array.from({ length: TOTAL }, (_, i) => (
               <div key={i} className={`flex-1 h-1 rounded-full transition-colors ${i <= etapaCadastro ? "bg-gray-900" : "bg-gray-100"}`} />
             ))}
           </div>
-          <p className="text-xs text-gray-400 font-medium">Pergunta {etapaCadastro + 1} de 6</p>
+          <p className="text-xs text-gray-400 font-medium">Pergunta {etapaCadastro + 1} de {TOTAL}</p>
         </div>
 
-        <h2 className="text-lg font-semibold text-gray-900 mb-5">{perguntaAtual.label}</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">{perguntaAtual.label}</h2>
 
         {perguntaAtual.tipo === "texto" && (
           <div>
@@ -420,6 +428,21 @@ export default function ObjecoesPage() {
               autoFocus
             />
             <p className="text-xs text-gray-400 mt-2">Escreva exatamente como o cliente fala.</p>
+          </div>
+        )}
+
+        {perguntaAtual.tipo === "textareaContexto" && (
+          <div>
+            <p className="text-sm text-gray-500 mb-3">Descreva a situação completa: onde estava, o que o cliente disse, como foi o tom, o que aconteceu antes e depois. <strong className="text-gray-700">Quanto mais detalhe, melhor a análise da IA.</strong></p>
+            <textarea
+              rows={6}
+              placeholder={"Ex: A cliente entrou na loja, olhou os iPhones por uns 15 minutos, perguntou o preço do 15 Pro e quando eu falei R$7.500 ela deu uma risadinha nervosa e disse 'Nossa, tá caro demais, não esperava tanto'. Ela já estava saindo quando perguntei se ela tinha visto o modelo anterior, mas ela falou que ia pensar e foi embora. Nunca mais voltou."}
+              value={novoContexto}
+              onChange={e => setNovoContexto(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-400 resize-none"
+              autoFocus
+            />
+            <p className="text-xs text-gray-400 mt-2">Inclua o que a pessoa disse, o clima da conversa e o que aconteceu depois.</p>
           </div>
         )}
 
@@ -448,7 +471,7 @@ export default function ObjecoesPage() {
         {perguntaAtual.tipo !== "opcoes" && (
           <button onClick={avancar} disabled={!podeAvancar || salvandoObjecao}
             className="w-full mt-5 py-3 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-700 transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
-            {salvandoObjecao ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Salvando…</> : etapaCadastro < 5 ? "Próxima pergunta →" : "Salvar objeção"}
+            {salvandoObjecao ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Salvando…</> : etapaCadastro < TOTAL - 1 ? "Próxima pergunta →" : "Salvar objeção"}
           </button>
         )}
       </div>
@@ -515,6 +538,13 @@ export default function ObjecoesPage() {
             </div>
             <p className="text-base font-bold text-gray-900">"{objecaoAtiva.texto}"</p>
           </div>
+
+          {objecaoAtiva.contexto && (
+            <div className="mb-4">
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Contexto da situação</p>
+              <p className="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 leading-relaxed italic">{objecaoAtiva.contexto}</p>
+            </div>
+          )}
 
           {objecaoAtiva.raiz && (
             <div className="mb-4">

@@ -56,6 +56,16 @@ async function garantirTabela() {
       `ALTER TABLE "EstudoEstrategico" ADD COLUMN "secAnaliseCompleta" TEXT NOT NULL DEFAULT ''`
     );
   } catch { /* coluna já existe */ }
+  try {
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "EstudoEstrategico" ADD COLUMN "secCriadora" TEXT NOT NULL DEFAULT ''`
+    );
+  } catch { /* coluna já existe */ }
+  try {
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "Objecao" ADD COLUMN "contexto" TEXT`
+    );
+  } catch { /* coluna já existe */ }
 }
 
 // ── Parsers de seção ──────────────────────────────────────────────────────
@@ -131,6 +141,19 @@ function parsearMercado(obj: Record<string, unknown>): Record<string, unknown> {
     oportunidades:   splitComma(obj.oportunidades),
     padroes_quebrar: splitComma(obj.padroes_quebrar),
     tendencias:      splitComma(obj.tendencias),
+  };
+}
+
+function parsearCriadora(obj: Record<string, unknown>): Record<string, unknown> {
+  return {
+    assinatura_abertura:   String(obj.assinatura_abertura || ""),
+    frases_assinatura:     splitComma(obj.frases_assinatura),
+    transicoes_edicao:     String(obj.transicoes_edicao || ""),
+    formatos_favoritos:    splitComma(obj.formatos_favoritos),
+    ganchos_abertura:      splitComma(obj.ganchos_abertura),
+    estilo_visual:         String(obj.estilo_visual || ""),
+    elementos_recorrentes: splitComma(obj.elementos_recorrentes),
+    voz_na_camera:         String(obj.voz_na_camera || ""),
   };
 }
 
@@ -259,6 +282,28 @@ Retorne SOMENTE este JSON (arrays como texto separado por vírgula):
   return NextResponse.json({ ok: true, secPosicionamento });
 }
 
+async function gerarCriadora(R: Record<string, string>) {
+  const prompt = `Criadora de conteúdo — ${CONFIG.nome}.
+Entrevista: abertura="${R.criadora_abertura || ""}" | frases="${R.criadora_frases || ""}" | transicoes="${R.criadora_transicoes || ""}" | formatos="${R.criadora_formatos || ""}" | ganchos="${R.criadora_ganchos || ""}" | visual="${R.criadora_visual || ""}"
+
+Retorne SOMENTE este JSON (arrays como texto separado por vírgula):
+{"assinatura_abertura":"como ela abre os vídeos em 1 frase","frases_assinatura":"frase1, frase2, frase3","transicoes_edicao":"padrão de edição e transição","formatos_favoritos":"formato1, formato2, formato3","ganchos_abertura":"gancho1, gancho2, gancho3","estilo_visual":"descrição do estilo visual","elementos_recorrentes":"elemento1, elemento2, elemento3","voz_na_camera":"como ela se comporta na câmera"}`;
+
+  const r = await chamarIA({ funcionalidade: "estrategia-criadora", sistema: SISTEMA, prompt, maxTokens: 400 });
+  if (!r.sucesso) return NextResponse.json({ erro: `IA criadora: ${r.erro}` }, { status: 500 });
+
+  const raw = extrairJSON(r.conteudo);
+  if (!raw) return NextResponse.json({ erro: "JSON criadora inválido. Tente novamente." }, { status: 500 });
+
+  const secCriadora = JSON.stringify(parsearCriadora(raw));
+  await prisma.estudoEstrategico.upsert({
+    where: { id: "default" },
+    update: { secCriadora, respostas: JSON.stringify(R) },
+    create: { id: "default", secCriadora, respostas: JSON.stringify(R) },
+  });
+  return NextResponse.json({ ok: true, secCriadora });
+}
+
 async function gerarMapa() {
   const estudo = await prisma.estudoEstrategico.findUnique({ where: { id: "default" } });
   let personaNome = "cliente ideal";
@@ -363,6 +408,7 @@ export async function POST(req: NextRequest) {
   if (modulo === "jornada")        return gerarJornada(R);
   if (modulo === "mercado")        return gerarMercado(R);
   if (modulo === "posicionamento") return gerarPosicionamento(R);
+  if (modulo === "criadora")       return gerarCriadora(R);
   if (modulo === "mapa")           return gerarMapa();
   if (modulo === "completo")       return gerarCompleto();
 

@@ -4,13 +4,13 @@ import {
   Loader2, ChevronLeft, Sparkles, Building2, User, Map, Globe,
   Target, BookOpen, CheckCircle2, AlertCircle, Lightbulb, TrendingUp,
   MessageSquare, Heart, Shield, Zap, Eye, Copy, Check, RotateCcw,
-  ArrowRight, Lock,
+  ArrowRight, Lock, Video,
 } from "lucide-react";
 
 // ── Tipos ────────────────────────────────────────────────────────────────
 
 type Respostas = Record<string, string>;
-type ModuloId = "empresa" | "persona" | "jornada" | "mercado" | "posicionamento" | "mapa";
+type ModuloId = "empresa" | "persona" | "jornada" | "mercado" | "posicionamento" | "criadora" | "mapa";
 type StatusModulo = "vazio" | "preenchendo" | "gerado";
 type View = "overview" | "form" | "resultado" | "gerando" | "analise-completa" | "gerando-completo";
 type Pergunta = { campo: string; pergunta: string; exemplo: string };
@@ -79,10 +79,23 @@ const MODULOS: Modulo[] = [
     ],
   },
   {
+    id: "criadora", titulo: "Identidade como Criadora", cor: "#8B74C8",
+    descCard: "Seus vícios de conteúdo: abertura, frases de assinatura, ganchos, formatos favoritos e estilo visual.",
+    icon: Video, secKey: "secCriadora",
+    perguntas: [
+      { campo: "criadora_abertura", pergunta: "Como você se apresenta nos vídeos? Descreva sua abertura padrão — o que você fala, com que energia, o que aparece na tela primeiro.", exemplo: "Ex: Começo sempre mostrando o produto na mão, olhando direta para a câmera e dizendo 'Gente, olha o que chegou!' com a loja no fundo. Tem sempre uma música animada de fundo nos primeiros segundos." },
+      { campo: "criadora_frases", pergunta: "Quais são as frases que são SUAS? Expressões, bordões, jeitos de falar que seus seguidores já sabem que são você.", exemplo: "Ex: 'Isso é muito mais do que parece', 'Vou te mostrar na prática', 'Não me deixa mentir', 'Toma aqui o conteúdo'. Também uso bastante 'Calma que eu explico' antes de dar uma informação técnica." },
+      { campo: "criadora_transicoes", pergunta: "Você tem alguma transição, corte, efeito ou música que usa com frequência? Como é o seu padrão de edição?", exemplo: "Ex: Sempre uso corte seco sem transição, legendas em negrito na tela, acelero as partes onde não estou falando. Uso sempre a mesma música de fundo nos Reels. Termino com tela preta e texto branco." },
+      { campo: "criadora_formatos", pergunta: "Quais formatos de conteúdo você mais faz? Como é a estrutura típica de cada um? (Caixinha de perguntas, bastidores, comparativos, tutoriais, antes/depois, dia a dia, provocações, etc.)", exemplo: "Ex: Reels de 'antes x depois' — mostro o produto embalado e depois na mão do cliente. Stories com caixinha de perguntas sobre dúvidas de iPhone toda semana. Carrossel comparando modelos com tabela de preço." },
+      { campo: "criadora_ganchos", pergunta: "Quais ganchos de abertura você mais usa? O que você fala ou mostra nos primeiros 3 segundos para prender a atenção?", exemplo: "Ex: 'Você NUNCA vai acreditar no que aconteceu aqui hoje', 'A dúvida mais comum que eu recebo é essa', 'Vou te mostrar o erro que você não pode cometer'. Às vezes começo no meio da ação sem dizer nada." },
+      { campo: "criadora_visual", pergunta: "Como é a estética visual do seu conteúdo? Cores, cenário, iluminação, figurino, elementos visuais que aparecem sempre.", exemplo: "Ex: Fundo sempre na loja, com os iPhones expostos atrás. Uso sempre roupa escura (preto ou verde musgo). Iluminação com ring light frontal. Legenda sempre em verde limão. Logo no canto direito." },
+    ],
+  },
+  {
     id: "mapa", titulo: "Mapa de Comunicação", cor: "#c8d92a",
     descCard: "Gerado automaticamente: 60+ insights com dores, desejos, objeções, gatilhos e temas.",
     icon: BookOpen, secKey: "secMapa",
-    perguntas: [], // gerado automaticamente, sem formulário
+    perguntas: [],
   },
 ];
 
@@ -108,6 +121,7 @@ function statusModulo(id: ModuloId, estudo: Record<string, string>, respostas: R
     jornada: ["jornada_"],
     mercado: ["mercado_"],
     posicionamento: ["pos_"],
+    criadora: ["criadora_"],
     mapa: [],
   };
   const temResposta = prefixos[id].some(p => Object.keys(respostas).some(k => k.startsWith(p) && respostas[k]?.trim()));
@@ -354,6 +368,43 @@ function ResultadoPosicionamento({ data }: { data: Record<string, unknown> }) {
   );
 }
 
+function ResultadoCriadora({ data }: { data: Record<string, unknown> }) {
+  const cor = "#8B74C8";
+  return (
+    <div>
+      {!!data.assinatura_abertura && (
+        <div className="mb-5 p-4 rounded-xl" style={{ background: "rgba(139,116,200,0.1)", border: "1px solid rgba(139,116,200,0.25)" }}>
+          <p className="section-label-purple mb-1">Abertura padrão</p>
+          <p className="text-sm font-semibold" style={{ color: cor }}>{String(data.assinatura_abertura)}</p>
+        </div>
+      )}
+      {!!data.voz_na_camera && (
+        <div className="mb-4 p-4 rounded-xl" style={{ background: "rgba(139,116,200,0.07)", border: "1px solid rgba(139,116,200,0.18)" }}>
+          <p className="section-label-purple mb-1">Comportamento na câmera</p>
+          <p className="text-sm" style={{ color: "var(--foreground)" }}>{String(data.voz_na_camera)}</p>
+        </div>
+      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Campo label="Frases de Assinatura" valor={arr(data.frases_assinatura)} />
+        <Campo label="Ganchos de Abertura" valor={arr(data.ganchos_abertura)} />
+        <Campo label="Formatos Favoritos" valor={arr(data.formatos_favoritos)} />
+        <Campo label="Elementos Recorrentes" valor={arr(data.elementos_recorrentes)} />
+      </div>
+      {!!data.transicoes_edicao && (
+        <div className="mt-4">
+          <Campo label="Padrão de Edição & Transições" valor={data.transicoes_edicao} />
+        </div>
+      )}
+      {!!data.estilo_visual && (
+        <div className="mt-2 p-4 rounded-xl" style={{ background: "rgba(139,116,200,0.07)", border: "1px solid rgba(139,116,200,0.18)" }}>
+          <p className="section-label-purple mb-1">Estilo Visual</p>
+          <p className="text-sm" style={{ color: "var(--foreground)" }}>{String(data.estilo_visual)}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ResultadoMapa({ data }: { data: Record<string, string[]> }) {
   const categorias = [
     { chave: "dores", label: "Dores", icon: Heart, cor: "#f06080" },
@@ -447,7 +498,6 @@ export default function PersonaPage() {
       const data = await res.json() as Record<string, string>;
       if (!res.ok) throw new Error((data as { erro?: string }).erro ?? `Erro ${res.status}`);
 
-      // Atualiza estudo local com o novo dado gerado
       setEstudo(prev => ({ ...prev, ...data }));
       setView("resultado");
     } catch (e) {
@@ -542,7 +592,6 @@ export default function PersonaPage() {
     const Icon = modulo.icon;
     const st = status(modulo.id);
 
-    // Mapa não tem formulário
     if (modulo.perguntas.length === 0) {
       const mapaDesbloqueado = status("persona") === "gerado" || status("empresa") === "gerado";
       return (
@@ -598,7 +647,6 @@ export default function PersonaPage() {
             <ChevronLeft size={14} /> Voltar aos módulos
           </button>
 
-          {/* Header */}
           <div className="flex items-start gap-4 mb-8">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: `${modulo.cor}18`, border: `1px solid ${modulo.cor}30` }}>
               <Icon size={22} style={{ color: modulo.cor }} />
@@ -619,7 +667,6 @@ export default function PersonaPage() {
             </div>
           )}
 
-          {/* Perguntas */}
           <div className="space-y-6">
             {modulo.perguntas.map((p, i) => (
               <div key={p.campo}>
@@ -646,7 +693,6 @@ export default function PersonaPage() {
             ))}
           </div>
 
-          {/* Erro */}
           {erro && (
             <div className="mt-6 p-4 rounded-xl flex gap-3" style={{ background: "rgba(240,96,128,0.1)", border: "1px solid rgba(240,96,128,0.3)" }}>
               <AlertCircle size={16} style={{ color: "#f06080" }} className="shrink-0 mt-0.5" />
@@ -657,7 +703,6 @@ export default function PersonaPage() {
             </div>
           )}
 
-          {/* Ações */}
           <div className="mt-8 space-y-3">
             <button
               onClick={() => gerarModulo(modulo.id)}
@@ -705,7 +750,6 @@ export default function PersonaPage() {
             )}
           </div>
 
-          {/* Header */}
           <div className="flex items-center gap-4 mb-8 p-5 rounded-2xl" style={{ background: `${modulo.cor}10`, border: `1px solid ${modulo.cor}30` }}>
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: `${modulo.cor}20` }}>
               <Icon size={22} style={{ color: modulo.cor }} />
@@ -725,6 +769,7 @@ export default function PersonaPage() {
             {modulo.id === "jornada"        && <ResultadoJornada data={secData} />}
             {modulo.id === "mercado"        && <ResultadoMercado data={secData} />}
             {modulo.id === "posicionamento" && <ResultadoPosicionamento data={secData} />}
+            {modulo.id === "criadora"       && <ResultadoCriadora data={secData} />}
             {modulo.id === "mapa"           && <ResultadoMapa data={secData as Record<string, string[]>} />}
           </div>
 
@@ -810,7 +855,7 @@ export default function PersonaPage() {
     );
   }
 
-  // ── OVERVIEW (página principal com 6 módulos) ──────────────────────────
+  // ── OVERVIEW ──────────────────────────────────────────────────────────
 
   const qtdGerados = MODULOS.filter(m => status(m.id) === "gerado").length;
 
@@ -818,7 +863,6 @@ export default function PersonaPage() {
     <div className="min-h-full" style={{ background: "var(--background)" }}>
       <div className="max-w-3xl mx-auto px-4 py-8">
 
-        {/* Header */}
         <div className="mb-8">
           <p className="section-label mb-2">· Diagnóstico Estratégico</p>
           <h1 className="text-2xl md:text-3xl font-bold mb-2" style={{ color: "var(--foreground)", fontFamily: "var(--font-syne, inherit)" }}>
@@ -830,7 +874,7 @@ export default function PersonaPage() {
           {qtdGerados > 0 && (
             <div className="mt-3 flex items-center gap-2">
               <div className="flex-1 h-1.5 rounded-full" style={{ background: "var(--accent)" }}>
-                <div className="h-full rounded-full transition-all" style={{ width: `${(qtdGerados / MODULOS.length) * 100}%`, background: "#6ee7b7" }} />
+                <div className="h-full rounded-full transition-all" style={{ width: `${(qtdGerados / MODULOS.length) * 100}%`, background: "#8B74C8" }} />
               </div>
               <span className="text-xs" style={{ color: "var(--muted)" }}>{qtdGerados}/{MODULOS.length} módulos</span>
             </div>
@@ -852,19 +896,21 @@ export default function PersonaPage() {
                 }}
                 className="p-5 rounded-2xl text-left transition-all hover:scale-[1.01] active:scale-[0.99]"
                 style={{
-                  background: "var(--card-bg)",
+                  background: st === "gerado"
+                    ? "rgba(139,116,200,0.14)"
+                    : "rgba(139,116,200,0.06)",
                   border: st === "gerado"
-                    ? "1px solid rgba(110,231,183,0.4)"
-                    : `1px solid var(--card-border)`,
-                  boxShadow: st === "gerado" ? "0 0 20px rgba(110,231,183,0.08)" : "none",
+                    ? "1px solid rgba(139,116,200,0.35)"
+                    : "1px solid rgba(139,116,200,0.18)",
+                  boxShadow: st === "gerado" ? "0 0 20px rgba(139,116,200,0.1)" : "none",
                 }}
               >
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all" style={{
-                    background: st === "gerado" ? `${m.cor}20` : "var(--accent)",
-                    border: st === "gerado" ? `1px solid ${m.cor}40` : "1px solid var(--card-border)",
+                    background: st === "gerado" ? `${m.cor}20` : "rgba(139,116,200,0.12)",
+                    border: st === "gerado" ? `1px solid ${m.cor}40` : "1px solid rgba(139,116,200,0.25)",
                   }}>
-                    <Icon size={18} style={{ color: st === "gerado" ? m.cor : "var(--muted)" }} />
+                    <Icon size={18} style={{ color: st === "gerado" ? m.cor : "#8B74C8" }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-0.5">
@@ -872,7 +918,7 @@ export default function PersonaPage() {
                       <BadgeStatus status={st} cor={m.cor} />
                     </div>
                     <p className="text-xs leading-relaxed" style={{ color: "var(--muted)" }}>{m.descCard}</p>
-                    <div className="mt-3 flex items-center gap-1 text-xs font-semibold" style={{ color: st === "gerado" ? "#6ee7b7" : m.cor }}>
+                    <div className="mt-3 flex items-center gap-1 text-xs font-semibold" style={{ color: st === "gerado" ? m.cor : "#8B74C8" }}>
                       {st === "gerado" ? (
                         <><Eye size={11} /> Ver análise</>
                       ) : st === "preenchendo" ? (
@@ -889,12 +935,12 @@ export default function PersonaPage() {
         </div>
 
         {/* Análise estratégica completa */}
-        <div className="p-5 rounded-2xl" style={{ background: todosGerados ? "rgba(200,217,42,0.08)" : "var(--card-bg)", border: todosGerados ? "1px solid rgba(200,217,42,0.3)" : "1px solid var(--card-border)" }}>
+        <div className="p-5 rounded-2xl" style={{ background: todosGerados ? "rgba(139,116,200,0.1)" : "rgba(139,116,200,0.05)", border: todosGerados ? "1px solid rgba(139,116,200,0.3)" : "1px solid rgba(139,116,200,0.15)" }}>
           {todosGerados ? (
             <div>
               <div className="flex items-start gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(200,217,42,0.2)", border: "1px solid rgba(200,217,42,0.3)" }}>
-                  <Sparkles size={18} style={{ color: "#c8d92a" }} />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(139,116,200,0.2)", border: "1px solid rgba(139,116,200,0.3)" }}>
+                  <Sparkles size={18} style={{ color: "#8B74C8" }} />
                 </div>
                 <div>
                   <p className="text-sm font-bold" style={{ color: "var(--foreground)", fontFamily: "var(--font-syne, inherit)" }}>Todos os módulos concluídos!</p>
@@ -905,7 +951,7 @@ export default function PersonaPage() {
                 <button
                   onClick={gerarCompleto}
                   className="flex-1 py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-                  style={{ background: "#c8d92a", color: "#0d2b1e", fontFamily: "var(--font-syne, inherit)", boxShadow: "0 0 24px rgba(200,217,42,0.3)" }}
+                  style={{ background: "#8B74C8", color: "#ffffff", fontFamily: "var(--font-syne, inherit)", boxShadow: "0 0 24px rgba(139,116,200,0.3)" }}
                 >
                   <Sparkles size={16} /> Gerar análise estratégica completa
                 </button>
@@ -922,13 +968,13 @@ export default function PersonaPage() {
             </div>
           ) : (
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--accent)", border: "1px solid var(--card-border)" }}>
-                <Lock size={18} style={{ color: "var(--muted)" }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(139,116,200,0.12)", border: "1px solid rgba(139,116,200,0.2)" }}>
+                <Lock size={18} style={{ color: "#8B74C8" }} />
               </div>
               <div>
                 <p className="text-sm font-semibold mb-0.5" style={{ color: "var(--foreground)", fontFamily: "var(--font-syne, inherit)" }}>Análise Estratégica Completa</p>
                 <p className="text-xs" style={{ color: "var(--muted)" }}>
-                  Disponível quando todos os {MODULOS.length} módulos forem gerados. Faltam <strong style={{ color: "var(--foreground)" }}>{MODULOS.length - qtdGerados} módulo{MODULOS.length - qtdGerados !== 1 ? "s" : ""}</strong>.
+                  Disponível quando todos os {MODULOS.length} módulos forem gerados. Faltam <strong style={{ color: "#8B74C8" }}>{MODULOS.length - qtdGerados} módulo{MODULOS.length - qtdGerados !== 1 ? "s" : ""}</strong>.
                 </p>
               </div>
             </div>

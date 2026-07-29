@@ -17,9 +17,10 @@ export async function POST() {
     ? { nome: persona.nomePersona, faixa: persona.faixaEtaria, local: persona.localizacao }
     : { nome: "Ana Conquista", faixa: "25-40 anos", local: "Londrina e regiao" };
 
-  const listaTexto = objecoes.map((o, i) =>
-    `${i + 1}. id:${o.id} | "${o.texto}" | freq:${o.frequencia || "?"} | etapa:${o.etapaVenda || "?"} | contorna:${o.consegueContornar || "?"} | compra-depois:${o.clienteCompraDepois || "?"}`
-  ).join("\n");
+  const listaTexto = objecoes.map((o, i) => {
+    const contextoLinha = o.contexto ? ` | contexto:"${o.contexto.slice(0, 300)}"` : "";
+    return `${i + 1}. id:${o.id} | frase:"${o.texto}"${contextoLinha} | freq:${o.frequencia || "?"} | etapa:${o.etapaVenda || "?"} | contorna:${o.consegueContornar || "?"} | compra-depois:${o.clienteCompraDepois || "?"}`;
+  }).join("\n");
 
   const prompt = [
     "Especialista em vendas para loja de tecnologia Apple. Responda SOMENTE o JSON.",

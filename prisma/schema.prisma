@@ -145,6 +145,7 @@ model PersonaConfig {
 model Objecao {
   id                  String   @id @default(cuid())
   texto               String
+  contexto            String?
   frequencia          String?
   etapaVenda          String?
   consegueContornar   String?
@@ -168,6 +169,7 @@ model EstudoEstrategico {
   secMercado          String   @default("")
   secPosicionamento   String   @default("")
   secMapa             String   @default("")
+  secCriadora         String   @default("")
   secAnaliseCompleta  String   @default("") // Análise estratégica cruzada final
   status              String   @default("novo")
   criadoEm            DateTime @default(now())
