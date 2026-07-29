@@ -18,6 +18,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { CONFIG } from "@/lib/config";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const nav = [
   { href: "/dashboard",   label: "Dashboard",          icon: LayoutDashboard },
@@ -91,6 +92,8 @@ export function Sidebar() {
 
       {/* Bottom */}
       <div className="px-2 py-3 space-y-0.5" style={{ borderTop: "1px solid #1e4535" }}>
+        <ThemeToggle />
+
         <Link
           href="/configuracoes"
           className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors"
