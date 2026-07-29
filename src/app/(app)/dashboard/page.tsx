@@ -96,10 +96,10 @@ export default async function Dashboard() {
         <div>
           <p className="section-label-purple mb-1">· Studio de Conteúdo</p>
           <h1
-            className="text-2xl md:text-3xl font-bold"
-            style={{ fontFamily: "var(--font-syne, inherit)", letterSpacing: "-0.01em", color: "var(--foreground)" }}
+            className="text-2xl md:text-3xl font-bold gradient-text-brand"
+            style={{ fontFamily: "var(--font-syne, inherit)", letterSpacing: "-0.01em" }}
           >
-            {saudacao}, <span className="gradient-text-brand">{CONFIG.nome}!</span>
+            {saudacao}, {CONFIG.nome}!
           </h1>
           <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>Aqui está o resumo do seu estúdio.</p>
         </div>
