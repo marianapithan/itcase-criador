@@ -160,17 +160,18 @@ model Objecao {
 }
 
 model EstudoEstrategico {
-  id             String   @id @default("default")
-  respostas      String   @default("{}") // JSON respostas da entrevista
-  secEmpresa     String   @default("") // Seção 1 gerada pela IA
-  secPersona     String   @default("") // Seção 2 gerada pela IA
-  secJornada     String   @default("") // Seção 3 gerada pela IA
-  secMercado     String   @default("") // Seção 4 gerada pela IA
-  secPosicionamento String @default("") // Seção 5 gerada pela IA
-  secMapa        String   @default("") // Seção 6 mapa de comunicação
-  status         String   @default("novo") // novo | gerando | completo
-  criadoEm       DateTime @default(now())
-  atualizadoEm   DateTime @updatedAt
+  id                  String   @id @default("default")
+  respostas           String   @default("{}") // JSON com todas as respostas dos módulos
+  secEmpresa          String   @default("")
+  secPersona          String   @default("")
+  secJornada          String   @default("")
+  secMercado          String   @default("")
+  secPosicionamento   String   @default("")
+  secMapa             String   @default("")
+  secAnaliseCompleta  String   @default("") // Análise estratégica cruzada final
+  status              String   @default("novo")
+  criadoEm            DateTime @default(now())
+  atualizadoEm        DateTime @updatedAt
 }
 
 model ConfigFramework {

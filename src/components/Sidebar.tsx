@@ -16,7 +16,6 @@ import {
   FileBarChart,
   Megaphone,
   ShieldAlert,
-  FlaskConical,
 } from "lucide-react";
 import { CONFIG } from "@/lib/config";
 import { ThemeToggle } from "./ThemeToggle";
@@ -31,7 +30,6 @@ const nav = [
   { href: "/trafego",     label: "Tráfego Pago",        icon: Megaphone },
   { href: "/objecoes",    label: "Mapa de Objeções",    icon: ShieldAlert },
   { href: "/persona",     label: "Estudo de Persona",   icon: User },
-  { href: "/frameworks",  label: "Frameworks IA",       icon: FlaskConical },
   { href: "/relatorio",   label: "Relatório PDF",       icon: FileBarChart },
 ];
 

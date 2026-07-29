@@ -13,12 +13,18 @@ async function garantirTabela() {
         "secMercado" TEXT NOT NULL DEFAULT '',
         "secPosicionamento" TEXT NOT NULL DEFAULT '',
         "secMapa" TEXT NOT NULL DEFAULT '',
+        "secAnaliseCompleta" TEXT NOT NULL DEFAULT '',
         "status" TEXT NOT NULL DEFAULT 'novo',
         "criadoEm" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "atualizadoEm" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
     `);
   } catch { /* tabela já existe */ }
+  try {
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "EstudoEstrategico" ADD COLUMN "secAnaliseCompleta" TEXT NOT NULL DEFAULT ''`
+    );
+  } catch { /* coluna já existe */ }
 }
 
 export async function GET() {
@@ -35,12 +41,21 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   await garantirTabela();
   const body = await req.json();
-  const { respostas } = body;
+  const { respostas } = body as { respostas: Record<string, string> };
+
+  // Mescla com respostas existentes para não perder dados de outros módulos
+  let existentes: Record<string, string> = {};
+  try {
+    const atual = await prisma.estudoEstrategico.findUnique({ where: { id: "default" } });
+    if (atual?.respostas) existentes = JSON.parse(atual.respostas) as Record<string, string>;
+  } catch { /* ignora */ }
+
+  const merged = { ...existentes, ...respostas };
 
   const estudo = await prisma.estudoEstrategico.upsert({
     where: { id: "default" },
-    update: { respostas: JSON.stringify(respostas), status: "rascunho" },
-    create: { id: "default", respostas: JSON.stringify(respostas), status: "rascunho" },
+    update: { respostas: JSON.stringify(merged) },
+    create: { id: "default", respostas: JSON.stringify(merged) },
   });
 
   return NextResponse.json(estudo);

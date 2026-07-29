@@ -1,196 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { generateObject, jsonSchema } from "ai";
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { createOpenAI } from "@ai-sdk/openai";
 import { chamarIA } from "@/lib/ai/gateway";
 import { CONFIG } from "@/lib/config";
 
 export const maxDuration = 300;
 export const runtime = "nodejs";
 
-// ── Schemas JSON para generateObject ─────────────────────────────────────────
+const SISTEMA =
+  "Responda APENAS com o JSON solicitado. Sem markdown. Sem texto antes ou depois. Sem comentários. Valores de string: máximo 15 palavras.";
 
-const SCHEMA_EMPRESA = jsonSchema<{ empresa: Record<string, unknown> }>({
-  type: "object",
-  properties: {
-    empresa: {
-      type: "object",
-      properties: {
-        produtos:                { type: "string" },
-        como_vende:              { type: "string" },
-        ticket:                  { type: "string" },
-        produto_entrada:         { type: "string" },
-        produto_premium:         { type: "string" },
-        diferenciais:            { type: "array", items: { type: "string" } },
-        posicionamento_atual:    { type: "string" },
-        posicionamento_desejado: { type: "string" },
-        valores:                 { type: "array", items: { type: "string" } },
-        personalidade:           { type: "string" },
-        promessa:                { type: "string" },
-        transformacao:           { type: "string" },
-      },
-      required: ["produtos", "como_vende", "ticket", "produto_entrada", "produto_premium",
-                 "diferenciais", "posicionamento_atual", "posicionamento_desejado",
-                 "valores", "personalidade", "promessa", "transformacao"],
-    },
-  },
-  required: ["empresa"],
-});
+// ── Utilitários ───────────────────────────────────────────────────────────
 
-const SCHEMA_PERSONA = jsonSchema<{ persona: Record<string, unknown> }>({
-  type: "object",
-  properties: {
-    persona: {
-      type: "object",
-      properties: {
-        nome:                  { type: "string" },
-        perfil:                { type: "string" },
-        rotina:                { type: "string" },
-        objetivos:             { type: "array", items: { type: "string" } },
-        sonhos:                { type: "array", items: { type: "string" } },
-        medos:                 { type: "array", items: { type: "string" } },
-        frustracoes:           { type: "array", items: { type: "string" } },
-        dores_emocionais:      { type: "array", items: { type: "string" } },
-        dores_financeiras:     { type: "array", items: { type: "string" } },
-        dores_praticas:        { type: "array", items: { type: "string" } },
-        desejos_conscientes:   { type: "array", items: { type: "string" } },
-        desejos_inconscientes: { type: "array", items: { type: "string" } },
-        gatilhos_compra:       { type: "array", items: { type: "string" } },
-        valores:               { type: "array", items: { type: "string" } },
-        linguagem:             { type: "string" },
-        palavras_usa:          { type: "array", items: { type: "string" } },
-        palavras_odeia:        { type: "array", items: { type: "string" } },
-        influenciadores:       { type: "array", items: { type: "string" } },
-        conteudo_consome:      { type: "array", items: { type: "string" } },
-        pesquisa_google:       { type: "array", items: { type: "string" } },
-        salva_instagram:       { type: "array", items: { type: "string" } },
-        faz_confiar:           { type: "array", items: { type: "string" } },
-        faz_desistir:          { type: "array", items: { type: "string" } },
-      },
-      required: ["nome", "perfil", "rotina", "objetivos", "sonhos", "medos",
-                 "frustracoes", "dores_emocionais", "dores_financeiras", "dores_praticas",
-                 "desejos_conscientes", "desejos_inconscientes", "gatilhos_compra",
-                 "valores", "linguagem", "palavras_usa", "palavras_odeia",
-                 "influenciadores", "conteudo_consome", "pesquisa_google",
-                 "salva_instagram", "faz_confiar", "faz_desistir"],
-    },
-  },
-  required: ["persona"],
-});
+function extrairJSON(texto: string): Record<string, unknown> | null {
+  let s = texto.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  s = s.replace(/,(\s*[}\]])/g, "$1");
+  try { return JSON.parse(s); } catch { /* continua */ }
+  const m = s.match(/\{[\s\S]*\}/);
+  if (m) { try { return JSON.parse(m[0].replace(/,(\s*[}\]])/g, "$1")); } catch { /* continua */ } }
+  console.error("[extrairJSON] falhou:", s.slice(0, 300));
+  return null;
+}
 
-const SCHEMA_JORNADA = jsonSchema<{ jornada: Record<string, unknown> }>({
-  type: "object",
-  properties: {
-    jornada: {
-      type: "object",
-      properties: {
-        etapas: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              nome:      { type: "string" },
-              descricao: { type: "string" },
-              emocao:    { type: "string" },
-              acao:      { type: "string" },
-            },
-            required: ["nome", "descricao", "emocao", "acao"],
-          },
-        },
-        tenta_sozinha:       { type: "string" },
-        solucoes_frustradas: { type: "array", items: { type: "string" } },
-        onde_trava:          { type: "string" },
-        o_que_falta:         { type: "string" },
-      },
-      required: ["etapas", "tenta_sozinha", "solucoes_frustradas", "onde_trava", "o_que_falta"],
-    },
-  },
-  required: ["jornada"],
-});
+function splitComma(v: unknown): string[] {
+  if (Array.isArray(v)) return (v as unknown[]).map(String).filter(Boolean);
+  if (typeof v === "string" && v.trim()) return v.split(",").map(s => s.trim()).filter(Boolean);
+  return [];
+}
 
-const SCHEMA_MERCADO_POS = jsonSchema<{
-  mercado: Record<string, unknown>;
-  posicionamento: Record<string, unknown>;
-}>({
-  type: "object",
-  properties: {
-    mercado: {
-      type: "object",
-      properties: {
-        concorrentes: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              nome:          { type: "string" },
-              como_comunica: { type: "string" },
-              promessa:      { type: "string" },
-              fraqueza:      { type: "string" },
-            },
-            required: ["nome", "como_comunica", "promessa", "fraqueza"],
-          },
-        },
-        oportunidades:   { type: "array", items: { type: "string" } },
-        padroes_quebrar: { type: "array", items: { type: "string" } },
-        tendencias:      { type: "array", items: { type: "string" } },
-      },
-      required: ["concorrentes", "oportunidades", "padroes_quebrar", "tendencias"],
-    },
-    posicionamento: {
-      type: "object",
-      properties: {
-        arquetipo:              { type: "string" },
-        tom_voz:                { type: "string" },
-        personalidade:          { type: "string" },
-        pilares_editoriais:     { type: "array", items: { type: "string" } },
-        promessa_central:       { type: "string" },
-        big_idea:               { type: "string" },
-        mecanismo_unico:        { type: "string" },
-        diferencial_competitivo:{ type: "string" },
-        crencas_construir:      { type: "array", items: { type: "string" } },
-        crencas_quebrar:        { type: "array", items: { type: "string" } },
-        inimigo_comum:          { type: "string" },
-      },
-      required: ["arquetipo", "tom_voz", "personalidade", "pilares_editoriais",
-                 "promessa_central", "big_idea", "mecanismo_unico",
-                 "diferencial_competitivo", "crencas_construir", "crencas_quebrar",
-                 "inimigo_comum"],
-    },
-  },
-  required: ["mercado", "posicionamento"],
-});
-
-// ── Obtém instância do modelo ativo ────────────────────────────────────────
-
-async function obterModelo() {
-  const configs = await prisma.configIA.findMany({
-    where: { ativo: true },
-    orderBy: { prioridade: "asc" },
-  });
-
-  if (configs.length === 0) throw new Error("Nenhum provedor de IA configurado em Configurações.");
-
-  for (const c of configs) {
-    if (c.provedor === "anthropic" && process.env.ANTHROPIC_API_KEY) {
-      return createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY })(
-        c.modeloPrincipal || "claude-sonnet-4-6"
-      );
-    }
-    if (c.provedor === "gemini" && process.env.GEMINI_API_KEY) {
-      return createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY })(
-        c.modeloPrincipal || "gemini-2.0-flash"
-      );
-    }
-    if (c.provedor === "openai" && process.env.OPENAI_API_KEY) {
-      return createOpenAI({ apiKey: process.env.OPENAI_API_KEY })(
-        c.modeloPrincipal || "gpt-4o-mini"
-      );
-    }
-  }
-
-  throw new Error("Provedor ativo não tem chave configurada em Variáveis de Ambiente.");
+function parsePipe(v: unknown, keys: string[]): Record<string, string> {
+  const raw = typeof v === "string" ? v.split("|").map(s => s.trim()) : [];
+  return Object.fromEntries(keys.map((k, i) => [k, raw[i] || ""]));
 }
 
 async function garantirTabela() {
@@ -205,144 +44,327 @@ async function garantirTabela() {
         "secMercado" TEXT NOT NULL DEFAULT '',
         "secPosicionamento" TEXT NOT NULL DEFAULT '',
         "secMapa" TEXT NOT NULL DEFAULT '',
+        "secAnaliseCompleta" TEXT NOT NULL DEFAULT '',
         "status" TEXT NOT NULL DEFAULT 'novo',
         "criadoEm" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "atualizadoEm" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
     `);
   } catch { /* tabela já existe */ }
+  try {
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "EstudoEstrategico" ADD COLUMN "secAnaliseCompleta" TEXT NOT NULL DEFAULT ''`
+    );
+  } catch { /* coluna já existe */ }
 }
 
-function extrairJSON(texto: string): Record<string, unknown> | null {
-  let s = texto.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-  // Remove trailing commas (common AI mistake)
-  s = s.replace(/,(\s*[}\]])/g, "$1");
-  try { return JSON.parse(s); } catch { /* continua */ }
-  const m = s.match(/\{[\s\S]*\}/);
-  if (m) {
-    try { return JSON.parse(m[0].replace(/,(\s*[}\]])/g, "$1")); } catch { /* continua */ }
-  }
-  return null;
+// ── Parsers de seção ──────────────────────────────────────────────────────
+
+function parsearEmpresa(obj: Record<string, unknown>): Record<string, unknown> {
+  return {
+    produtos:                String(obj.produtos || ""),
+    como_vende:              String(obj.como_vende || ""),
+    ticket:                  String(obj.ticket || ""),
+    produto_entrada:         String(obj.produto_entrada || ""),
+    produto_premium:         String(obj.produto_premium || ""),
+    diferenciais:            splitComma(obj.diferenciais),
+    posicionamento_atual:    String(obj.posicionamento_atual || ""),
+    posicionamento_desejado: String(obj.posicionamento_desejado || ""),
+    valores:                 splitComma(obj.valores),
+    personalidade:           String(obj.personalidade || ""),
+    promessa:                String(obj.promessa || ""),
+    transformacao:           String(obj.transformacao || ""),
+  };
+}
+
+function parsearPersona(obj: Record<string, unknown>): Record<string, unknown> {
+  return {
+    nome:                  String(obj.nome || ""),
+    perfil:                String(obj.perfil || ""),
+    rotina:                String(obj.rotina || ""),
+    objetivos:             splitComma(obj.objetivos),
+    sonhos:                splitComma(obj.sonhos),
+    medos:                 splitComma(obj.medos),
+    frustracoes:           splitComma(obj.frustracoes),
+    dores_emocionais:      splitComma(obj.dores_emocionais),
+    dores_financeiras:     splitComma(obj.dores_financeiras),
+    dores_praticas:        splitComma(obj.dores_praticas),
+    desejos_conscientes:   splitComma(obj.desejos_conscientes),
+    desejos_inconscientes: splitComma(obj.desejos_inconscientes),
+    gatilhos_compra:       splitComma(obj.gatilhos_compra),
+    valores:               splitComma(obj.valores),
+    linguagem:             String(obj.linguagem || ""),
+    palavras_usa:          splitComma(obj.palavras_usa),
+    palavras_odeia:        splitComma(obj.palavras_odeia),
+    influenciadores:       splitComma(obj.influenciadores),
+    conteudo_consome:      splitComma(obj.conteudo_consome),
+    pesquisa_google:       splitComma(obj.pesquisa_google),
+    salva_instagram:       splitComma(obj.salva_instagram),
+    faz_confiar:           splitComma(obj.faz_confiar),
+    faz_desistir:          splitComma(obj.faz_desistir),
+  };
+}
+
+function parsearJornada(obj: Record<string, unknown>): Record<string, unknown> {
+  const nomes = ["Consciência", "Consideração", "Decisão", "Compra", "Pós-compra"];
+  const etapas = [1, 2, 3, 4, 5].map((n, i) => ({
+    nome: nomes[i],
+    ...parsePipe(obj[`etapa_${n}`], ["descricao", "emocao", "acao"]),
+  }));
+  return {
+    etapas,
+    tenta_sozinha:       String(obj.tenta_sozinha || ""),
+    solucoes_frustradas: splitComma(obj.solucoes_frustradas),
+    onde_trava:          String(obj.onde_trava || ""),
+    o_que_falta:         String(obj.o_que_falta || ""),
+  };
+}
+
+function parsearMercado(obj: Record<string, unknown>): Record<string, unknown> {
+  const concorrentes = [1, 2, 3].map(n => {
+    const raw = obj[`concorrente_${n}`];
+    if (!raw) return null;
+    return parsePipe(raw, ["nome", "como_comunica", "promessa", "fraqueza"]);
+  }).filter(Boolean);
+  return {
+    concorrentes,
+    oportunidades:   splitComma(obj.oportunidades),
+    padroes_quebrar: splitComma(obj.padroes_quebrar),
+    tendencias:      splitComma(obj.tendencias),
+  };
+}
+
+function parsearPosicionamento(obj: Record<string, unknown>): Record<string, unknown> {
+  return {
+    arquetipo:               String(obj.arquetipo || ""),
+    tom_voz:                 String(obj.tom_voz || ""),
+    personalidade:           String(obj.personalidade || ""),
+    pilares_editoriais:      splitComma(obj.pilares_editoriais),
+    promessa_central:        String(obj.promessa_central || ""),
+    big_idea:                String(obj.big_idea || ""),
+    mecanismo_unico:         String(obj.mecanismo_unico || ""),
+    diferencial_competitivo: String(obj.diferencial_competitivo || ""),
+    crencas_construir:       splitComma(obj.crencas_construir),
+    crencas_quebrar:         splitComma(obj.crencas_quebrar),
+    inimigo_comum:           String(obj.inimigo_comum || ""),
+  };
+}
+
+// ── Geradores por módulo ──────────────────────────────────────────────────
+
+async function gerarEmpresa(R: Record<string, string>) {
+  const prompt = `Empresa ${CONFIG.nome} — varejo Apple Londrina.
+Entrevista: produtos="${R.empresa_produtos || ""}" | como vende="${R.empresa_como_vende || ""}" | ticket="${R.empresa_ticket || ""}" | diferenciais="${R.empresa_diferenciais || ""}" | posicionamento="${R.empresa_posicionamento || ""}" | valores="${R.empresa_valores || ""}"
+
+Retorne SOMENTE este JSON (arrays como texto separado por vírgula):
+{"produtos":"...","como_vende":"...","ticket":"...","produto_entrada":"...","produto_premium":"...","diferenciais":"item1, item2, item3","posicionamento_atual":"...","posicionamento_desejado":"...","valores":"val1, val2, val3","personalidade":"...","promessa":"...","transformacao":"..."}`;
+
+  const r = await chamarIA({ funcionalidade: "estrategia-empresa", sistema: SISTEMA, prompt, maxTokens: 400 });
+  if (!r.sucesso) return NextResponse.json({ erro: `IA empresa: ${r.erro}` }, { status: 500 });
+
+  const raw = extrairJSON(r.conteudo);
+  if (!raw) return NextResponse.json({ erro: "JSON empresa inválido. Tente novamente." }, { status: 500 });
+
+  const secEmpresa = JSON.stringify(parsearEmpresa(raw));
+  await prisma.estudoEstrategico.upsert({
+    where: { id: "default" },
+    update: { secEmpresa, respostas: JSON.stringify(R) },
+    create: { id: "default", secEmpresa, respostas: JSON.stringify(R) },
+  });
+  return NextResponse.json({ ok: true, secEmpresa });
+}
+
+async function gerarPersona(R: Record<string, string>) {
+  const prompt = `Empresa ${CONFIG.nome} — varejo Apple Londrina.
+Entrevista: perfil="${R.persona_perfil || ""}" | rotina="${R.persona_rotina || ""}" | objetivos="${R.persona_objetivos || ""}" | confiança="${R.persona_confianca || ""}" | linguagem="${R.persona_linguagem || ""}" | influência="${R.persona_influencia || ""}"
+
+Retorne SOMENTE este JSON (arrays como texto separado por vírgula):
+{"nome":"[nome feminino real]","perfil":"...","rotina":"...","objetivos":"obj1, obj2, obj3","sonhos":"s1, s2","medos":"m1, m2, m3","frustracoes":"f1, f2","dores_emocionais":"d1, d2","dores_financeiras":"d1, d2","dores_praticas":"d1, d2","desejos_conscientes":"d1, d2","desejos_inconscientes":"d1, d2","gatilhos_compra":"g1, g2, g3","valores":"v1, v2","linguagem":"...","palavras_usa":"p1, p2, p3","palavras_odeia":"p1, p2","influenciadores":"i1, i2","conteudo_consome":"c1, c2","pesquisa_google":"b1, b2, b3","salva_instagram":"t1, t2","faz_confiar":"f1, f2, f3","faz_desistir":"f1, f2"}`;
+
+  const r = await chamarIA({ funcionalidade: "estrategia-persona", sistema: SISTEMA, prompt, maxTokens: 600 });
+  if (!r.sucesso) return NextResponse.json({ erro: `IA persona: ${r.erro}` }, { status: 500 });
+
+  const raw = extrairJSON(r.conteudo);
+  if (!raw) return NextResponse.json({ erro: "JSON persona inválido. Tente novamente." }, { status: 500 });
+
+  const secPersona = JSON.stringify(parsearPersona(raw));
+  await prisma.estudoEstrategico.upsert({
+    where: { id: "default" },
+    update: { secPersona, respostas: JSON.stringify(R) },
+    create: { id: "default", secPersona, respostas: JSON.stringify(R) },
+  });
+  return NextResponse.json({ ok: true, secPersona });
+}
+
+async function gerarJornada(R: Record<string, string>) {
+  const prompt = `Empresa ${CONFIG.nome}. Entrevista: percebe="${R.jornada_percebe || ""}" | trava="${R.jornada_trava || ""}" | emoções="${R.jornada_emocoes || ""}"
+
+Retorne SOMENTE este JSON. Cada etapa_N: "descricao|emocao|acao":
+{"etapa_1":"descricao|emocao|acao","etapa_2":"descricao|emocao|acao","etapa_3":"descricao|emocao|acao","etapa_4":"descricao|emocao|acao","etapa_5":"descricao|emocao|acao","tenta_sozinha":"...","solucoes_frustradas":"s1, s2","onde_trava":"...","o_que_falta":"..."}`;
+
+  const r = await chamarIA({ funcionalidade: "estrategia-jornada", sistema: SISTEMA, prompt, maxTokens: 350 });
+  if (!r.sucesso) return NextResponse.json({ erro: `IA jornada: ${r.erro}` }, { status: 500 });
+
+  const raw = extrairJSON(r.conteudo);
+  if (!raw) return NextResponse.json({ erro: "JSON jornada inválido. Tente novamente." }, { status: 500 });
+
+  const secJornada = JSON.stringify(parsearJornada(raw));
+  await prisma.estudoEstrategico.upsert({
+    where: { id: "default" },
+    update: { secJornada, respostas: JSON.stringify(R) },
+    create: { id: "default", secJornada, respostas: JSON.stringify(R) },
+  });
+  return NextResponse.json({ ok: true, secJornada });
+}
+
+async function gerarMercado(R: Record<string, string>) {
+  const prompt = `Empresa ${CONFIG.nome}. Entrevista: concorrentes="${R.mercado_concorrentes || ""}" | oportunidades="${R.mercado_oportunidades || ""}" | tendências="${R.mercado_tendencias || ""}"
+
+Retorne SOMENTE este JSON. Cada concorrente_N: "nome|como_comunica|promessa|fraqueza":
+{"concorrente_1":"nome|como_comunica|promessa|fraqueza","concorrente_2":"nome|como_comunica|promessa|fraqueza","concorrente_3":"nome|como_comunica|promessa|fraqueza","oportunidades":"op1, op2, op3","padroes_quebrar":"p1, p2","tendencias":"t1, t2, t3"}`;
+
+  const r = await chamarIA({ funcionalidade: "estrategia-mercado", sistema: SISTEMA, prompt, maxTokens: 350 });
+  if (!r.sucesso) return NextResponse.json({ erro: `IA mercado: ${r.erro}` }, { status: 500 });
+
+  const raw = extrairJSON(r.conteudo);
+  if (!raw) return NextResponse.json({ erro: "JSON mercado inválido. Tente novamente." }, { status: 500 });
+
+  const secMercado = JSON.stringify(parsearMercado(raw));
+  await prisma.estudoEstrategico.upsert({
+    where: { id: "default" },
+    update: { secMercado, respostas: JSON.stringify(R) },
+    create: { id: "default", secMercado, respostas: JSON.stringify(R) },
+  });
+  return NextResponse.json({ ok: true, secMercado });
+}
+
+async function gerarPosicionamento(R: Record<string, string>) {
+  const prompt = `Empresa ${CONFIG.nome}. Entrevista: personalidade="${R.pos_personalidade || ""}" | big_idea="${R.pos_big_idea || ""}" | crenças="${R.pos_crencas || ""}"
+
+Retorne SOMENTE este JSON (arrays como texto separado por vírgula):
+{"arquetipo":"...","tom_voz":"...","personalidade":"...","pilares_editoriais":"p1, p2, p3, p4","promessa_central":"...","big_idea":"...","mecanismo_unico":"...","diferencial_competitivo":"...","crencas_construir":"c1, c2, c3","crencas_quebrar":"c1, c2","inimigo_comum":"..."}`;
+
+  const r = await chamarIA({ funcionalidade: "estrategia-posicionamento", sistema: SISTEMA, prompt, maxTokens: 400 });
+  if (!r.sucesso) return NextResponse.json({ erro: `IA posicionamento: ${r.erro}` }, { status: 500 });
+
+  const raw = extrairJSON(r.conteudo);
+  if (!raw) return NextResponse.json({ erro: "JSON posicionamento inválido. Tente novamente." }, { status: 500 });
+
+  const secPosicionamento = JSON.stringify(parsearPosicionamento(raw));
+  await prisma.estudoEstrategico.upsert({
+    where: { id: "default" },
+    update: { secPosicionamento, respostas: JSON.stringify(R) },
+    create: { id: "default", secPosicionamento, respostas: JSON.stringify(R) },
+  });
+  return NextResponse.json({ ok: true, secPosicionamento });
+}
+
+async function gerarMapa() {
+  const estudo = await prisma.estudoEstrategico.findUnique({ where: { id: "default" } });
+  let personaNome = "cliente ideal";
+  let personaPerfil = "";
+  try {
+    const p = JSON.parse(estudo?.secPersona ?? "{}") as Record<string, unknown>;
+    personaNome = String(p.nome ?? "cliente ideal");
+    personaPerfil = String(p.perfil ?? "").slice(0, 100);
+  } catch { /* ignora */ }
+
+  const prompt = `Empresa: ${CONFIG.nome}. Persona: ${personaNome} — ${personaPerfil}.
+
+Retorne SOMENTE este JSON (arrays de strings, 6 itens cada, máx 12 palavras por item):
+{"dores":["...","...","...","...","...","..."],"desejos":["...","...","...","...","...","..."],"objecoes":["...","...","...","...","...","..."],"crencas_limitantes":["...","...","...","...","...","..."],"gatilhos_mentais":["...","...","...","...","...","..."],"temas_conteudo":["...","...","...","...","...","..."],"perguntas_frequentes":["...","...","...","...","...","..."],"mitos":["...","...","...","...","...","..."],"erros":["...","...","...","...","...","..."],"oportunidades_conteudo":["...","...","...","...","...","..."]}`;
+
+  const r = await chamarIA({ funcionalidade: "estrategia-mapa", sistema: SISTEMA, prompt, maxTokens: 900 });
+  if (!r.sucesso) return NextResponse.json({ erro: `IA mapa: ${r.erro}` }, { status: 500 });
+
+  const mapa = extrairJSON(r.conteudo);
+  if (!mapa) return NextResponse.json({ erro: "JSON mapa inválido. Tente novamente." }, { status: 500 });
+
+  const secMapa = JSON.stringify(mapa);
+  await prisma.estudoEstrategico.upsert({
+    where: { id: "default" },
+    update: { secMapa },
+    create: { id: "default", secMapa },
+  });
+  return NextResponse.json({ ok: true, secMapa });
+}
+
+async function gerarCompleto() {
+  const estudo = await prisma.estudoEstrategico.findUnique({ where: { id: "default" } });
+  if (!estudo) return NextResponse.json({ erro: "Nenhum módulo gerado ainda." }, { status: 400 });
+
+  const empresa    = estudo.secEmpresa        ? JSON.parse(estudo.secEmpresa)        as Record<string, unknown> : null;
+  const persona    = estudo.secPersona        ? JSON.parse(estudo.secPersona)        as Record<string, unknown> : null;
+  const jornada    = estudo.secJornada        ? JSON.parse(estudo.secJornada)        as Record<string, unknown> : null;
+  const mercado    = estudo.secMercado        ? JSON.parse(estudo.secMercado)        as Record<string, unknown> : null;
+  const pos        = estudo.secPosicionamento ? JSON.parse(estudo.secPosicionamento) as Record<string, unknown> : null;
+  const mapa       = estudo.secMapa           ? JSON.parse(estudo.secMapa)           as Record<string, unknown> : null;
+
+  const contexto = JSON.stringify({
+    empresa: empresa ? {
+      produtos: empresa.produtos, promessa: empresa.promessa, diferenciais: empresa.diferenciais,
+      posicionamento_desejado: empresa.posicionamento_desejado, transformacao: empresa.transformacao,
+    } : null,
+    persona: persona ? {
+      nome: persona.nome, perfil: persona.perfil, medos: persona.medos,
+      desejos_conscientes: persona.desejos_conscientes, gatilhos_compra: persona.gatilhos_compra,
+      faz_confiar: persona.faz_confiar, faz_desistir: persona.faz_desistir,
+    } : null,
+    jornada: jornada ? {
+      onde_trava: jornada.onde_trava, o_que_falta: jornada.o_que_falta,
+      solucoes_frustradas: jornada.solucoes_frustradas,
+    } : null,
+    mercado: mercado ? {
+      concorrentes: mercado.concorrentes, oportunidades: mercado.oportunidades,
+      padroes_quebrar: mercado.padroes_quebrar,
+    } : null,
+    posicionamento: pos ? {
+      big_idea: pos.big_idea, inimigo_comum: pos.inimigo_comum,
+      pilares_editoriais: pos.pilares_editoriais, crencas_construir: pos.crencas_construir,
+    } : null,
+    mapa: mapa ? {
+      dores:    (mapa.dores    as string[] | undefined)?.slice(0, 3),
+      objecoes: (mapa.objecoes as string[] | undefined)?.slice(0, 3),
+    } : null,
+  });
+
+  const prompt = `Analise estrategicamente esta empresa e retorne SOMENTE este JSON. Máximo 50 palavras por campo de texto:
+
+DADOS: ${contexto}
+
+{"diagnostico_atual":"cenário atual conciso da empresa","conexao_persona_oferta":"como a oferta se conecta (ou não) com a persona","lacunas_jornada":"pontos cegos ou oportunidades na jornada de compra","coerencia_posicionamento":"se o posicionamento está alinhado com persona e mercado","oportunidades_estrategicas":"maiores oportunidades identificadas pelo cruzamento dos dados","incoerencias":"inconsistências ou contradições encontradas entre os módulos","recomendacoes_conteudo":"direcionamentos específicos para conteúdo com base nos dados","recomendacoes_marketing":"ações táticas de marketing recomendadas","recomendacoes_vendas":"ajustes no processo de venda baseados na jornada","proximos_passos":"3 ações prioritárias para os próximos 30 dias"}`;
+
+  const r = await chamarIA({ funcionalidade: "estrategia-completo", sistema: SISTEMA, prompt, maxTokens: 800 });
+  if (!r.sucesso) return NextResponse.json({ erro: `IA análise completa: ${r.erro}` }, { status: 500 });
+
+  const analise = extrairJSON(r.conteudo);
+  if (!analise) return NextResponse.json({ erro: "JSON análise completa inválido. Tente novamente." }, { status: 500 });
+
+  const secAnaliseCompleta = JSON.stringify(analise);
+  await prisma.estudoEstrategico.upsert({
+    where: { id: "default" },
+    update: { secAnaliseCompleta },
+    create: { id: "default", secAnaliseCompleta },
+  });
+  return NextResponse.json({ ok: true, secAnaliseCompleta });
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const fase: number = body.fase ?? 1;
+  const modulo = body.modulo as string;
   const R = (body.respostas ?? {}) as Record<string, string>;
 
-  const SISTEMA_OBJ = "Você é um estrategista de marketing especializado em varejo premium. Seja direto e específico para este negócio. Máximo 20 palavras por string, 4 itens por array.";
+  await garantirTabela();
 
-  // ── FASE 1a: empresa (12 campos, todos required) ───────────────────────────
-  // ── FASE 1b: persona (23 campos, todos required) ──────────────────────────
-  if (fase === 1) {
-    await garantirTabela();
-    await prisma.estudoEstrategico.upsert({
-      where: { id: "default" },
-      update: { status: "gerando", respostas: JSON.stringify(R) },
-      create: { id: "default", status: "gerando", respostas: JSON.stringify(R) },
-    });
+  if (modulo === "empresa")        return gerarEmpresa(R);
+  if (modulo === "persona")        return gerarPersona(R);
+  if (modulo === "jornada")        return gerarJornada(R);
+  if (modulo === "mercado")        return gerarMercado(R);
+  if (modulo === "posicionamento") return gerarPosicionamento(R);
+  if (modulo === "mapa")           return gerarMapa();
+  if (modulo === "completo")       return gerarCompleto();
 
-    let model;
-    try { model = await obterModelo(); }
-    catch (e) { return NextResponse.json({ erro: String(e) }, { status: 500 }); }
-
-    const baseEmpresa = `Empresa: ${CONFIG.nome} — varejo Apple, Londrina-PR\nProdutos: ${R.empresa_produtos || ""}\nComo vende: ${R.empresa_como_vende || ""}\nTicket: ${R.empresa_ticket || ""}\nDiferenciais: ${R.empresa_diferenciais || ""}\nPosicionamento: ${R.empresa_posicionamento || ""}\nValores/promessa: ${R.empresa_valores || ""}`;
-
-    const basePersona = `Empresa: ${CONFIG.nome} — varejo Apple, Londrina-PR\nPerfil: ${R.persona_perfil || ""}\nRotina: ${R.persona_rotina || ""}\nObjetivos/medos/dores: ${R.persona_objetivos || ""}\nConfiança vs desistência: ${R.persona_confianca || ""}\nLinguagem: ${R.persona_linguagem || ""}\nInfluenciadores: ${R.persona_influencia || ""}`;
-
-    try {
-      const [{ object: obj1 }, { object: obj2 }] = await Promise.all([
-        generateObject({ model, schema: SCHEMA_EMPRESA, system: SISTEMA_OBJ, prompt: baseEmpresa + "\n\nGere a análise estratégica da empresa.", maxOutputTokens: 600 }),
-        generateObject({ model, schema: SCHEMA_PERSONA, system: SISTEMA_OBJ, prompt: basePersona + "\n\nGere a análise completa da persona com nome fictício realista.", maxOutputTokens: 900 }),
-      ]);
-
-      await prisma.estudoEstrategico.upsert({
-        where: { id: "default" },
-        update: { secEmpresa: JSON.stringify(obj1.empresa), secPersona: JSON.stringify(obj2.persona), status: "gerando" },
-        create: { id: "default", respostas: JSON.stringify(R), secEmpresa: JSON.stringify(obj1.empresa), secPersona: JSON.stringify(obj2.persona), status: "gerando" },
-      });
-
-      return NextResponse.json({ ok: true, fase: 1 });
-    } catch (e) {
-      console.error("[estrategia-gerar fase1]", e);
-      return NextResponse.json({ erro: `Falha na fase 1: ${e instanceof Error ? e.message : String(e)}` }, { status: 500 });
-    }
-  }
-
-  // ── FASE 2a: jornada | FASE 2b: mercado + posicionamento ─────────────────
-  if (fase === 2) {
-    let model;
-    try { model = await obterModelo(); }
-    catch (e) { return NextResponse.json({ erro: String(e) }, { status: 500 }); }
-
-    const baseJornada = `Empresa: ${CONFIG.nome}\nPercepção do problema: ${R.jornada_percebe || ""}\nSoluções frustradas: ${R.jornada_trava || ""}\nEmoções: ${R.jornada_emocoes || ""}`;
-    const baseMercadoPos = `Empresa: ${CONFIG.nome}\nConcorrentes: ${R.mercado_concorrentes || ""}\nOportunidades: ${R.mercado_oportunidades || ""}\nTendências: ${R.mercado_tendencias || ""}\nPersonalidade: ${R.pos_personalidade || ""}\nBig Idea: ${R.pos_big_idea || ""}\nCrenças/inimigo: ${R.pos_crencas || ""}`;
-
-    try {
-      const [{ object: obj3 }, { object: obj4 }] = await Promise.all([
-        generateObject({ model, schema: SCHEMA_JORNADA, system: SISTEMA_OBJ, prompt: baseJornada + "\n\nGere a jornada do cliente em 5 etapas.", maxOutputTokens: 600 }),
-        generateObject({ model, schema: SCHEMA_MERCADO_POS, system: SISTEMA_OBJ, prompt: baseMercadoPos + "\n\nGere análise de mercado e posicionamento estratégico.", maxOutputTokens: 700 }),
-      ]);
-
-      await prisma.estudoEstrategico.upsert({
-        where: { id: "default" },
-        update: { secJornada: JSON.stringify(obj3.jornada), secMercado: JSON.stringify(obj4.mercado), secPosicionamento: JSON.stringify(obj4.posicionamento), status: "gerando" },
-        create: { id: "default", secJornada: JSON.stringify(obj3.jornada), secMercado: JSON.stringify(obj4.mercado), secPosicionamento: JSON.stringify(obj4.posicionamento), status: "gerando" },
-      });
-
-      return NextResponse.json({ ok: true, fase: 2 });
-    } catch (e) {
-      console.error("[estrategia-gerar fase2]", e);
-      return NextResponse.json({ erro: `Falha na fase 2: ${e instanceof Error ? e.message : String(e)}` }, { status: 500 });
-    }
-  }
-
-  // ── FASE 3: mapa via chamarIA (texto + parse) ─────────────────────────────
-  if (fase === 3) {
-    const estudo = await prisma.estudoEstrategico.findUnique({ where: { id: "default" } });
-
-    let personaNome = "cliente ideal";
-    let personaPerfil = "";
-    try {
-      const p = JSON.parse(estudo?.secPersona ?? "{}") as Record<string, unknown>;
-      personaNome = String(p.nome ?? "cliente ideal");
-      personaPerfil = String(p.perfil ?? "").slice(0, 120);
-    } catch { /* ignora */ }
-
-    const prompt3 = `Empresa: ${CONFIG.nome}. Persona: ${personaNome} — ${personaPerfil}
-
-Retorne SOMENTE o JSON abaixo, sem nenhum texto fora, sem markdown:
-{"dores":["item1","item2","item3","item4","item5","item6"],"desejos":["item1","item2","item3","item4","item5","item6"],"objecoes":["item1","item2","item3","item4","item5","item6"],"crencas_limitantes":["item1","item2","item3","item4","item5","item6"],"gatilhos_mentais":["item1","item2","item3","item4","item5","item6"],"temas_conteudo":["item1","item2","item3","item4","item5","item6"],"perguntas_frequentes":["item1","item2","item3","item4","item5","item6"],"mitos":["item1","item2","item3","item4","item5","item6"],"erros":["item1","item2","item3","item4","item5","item6"],"oportunidades_conteudo":["item1","item2","item3","item4","item5","item6"]}
-
-Substitua item1..item6 por itens específicos e reais para o negócio. Máximo 12 palavras por item.`;
-
-    const r3 = await chamarIA({
-      funcionalidade: "estrategia-mapa",
-      sistema: "Retorne SOMENTE o JSON pedido. Nenhum texto fora do JSON.",
-      prompt: prompt3,
-      maxTokens: 1000,
-    });
-
-    if (!r3.sucesso) {
-      return NextResponse.json({ erro: `Mapa IA falhou: ${r3.erro}` }, { status: 500 });
-    }
-
-    const mapa = extrairJSON(r3.conteudo);
-    if (!mapa) {
-      console.error("[estrategia-gerar fase3] JSON inválido. Raw:", r3.conteudo.slice(0, 400));
-      return NextResponse.json({ erro: "Erro no mapa de comunicação. Tente novamente." }, { status: 500 });
-    }
-
-    const atualizado = await prisma.estudoEstrategico.upsert({
-      where: { id: "default" },
-      update: { secMapa: JSON.stringify(mapa), status: "completo" },
-      create: { id: "default", secMapa: JSON.stringify(mapa), status: "completo" },
-    });
-
-    return NextResponse.json(atualizado);
-  }
-
-  return NextResponse.json({ erro: "Fase inválida" }, { status: 400 });
+  return NextResponse.json({ erro: "Módulo inválido" }, { status: 400 });
 }

@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/db/client";
-import { Lightbulb, BookOpen, CalendarDays, TrendingUp, AlertCircle, CheckCircle2, Clock, ArrowRight } from "lucide-react";
+import { Lightbulb, BookOpen, CalendarDays, Video, Smartphone, FileImage, AlertCircle, CheckCircle2, Clock, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { STATUS_CONFIG, FORMATOS_CONFIG } from "@/lib/constants";
 import { CONFIG } from "@/lib/config";
@@ -29,11 +29,10 @@ export default async function Dashboard() {
   const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0, 23, 59, 59);
   const em7dias = new Date(hoje.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-  const [totalTemas, totalConteudos, agendados, aprovados, proximosNaoGravados, publicadosMes, proximosConteudos, publicadosPorDia] = await Promise.all([
-    prisma.tema.count(),
-    prisma.conteudo.count(),
-    prisma.conteudo.count({ where: { dataplanejada: { not: null } } }),
-    prisma.conteudo.count({ where: { status: { in: ["APROVADO", "ROTEIRO_PRONTO", "PRONTO_PUBLICAR", "AGENDADO"] } } }),
+  const hora = hoje.getHours();
+  const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+
+  const [proximosNaoGravados, publicadosMes, proximosConteudos, publicadosPorDia] = await Promise.all([
     prisma.conteudo.count({
       where: {
         dataplanejada: { gte: hoje, lte: new Date(hoje.getTime() + 2 * 24 * 60 * 60 * 1000) },
@@ -64,12 +63,6 @@ export default async function Dashboard() {
     include: { tema: { select: { titulo: true } } },
   });
 
-  const stats = [
-    { label: "Temas criados",  value: totalTemas,     icon: Lightbulb,    href: "/temas",      cor: "#c8d92a",  corBg: "rgba(200,217,42,0.12)" },
-    { label: "Conteúdos",      value: totalConteudos, icon: BookOpen,     href: "/biblioteca", cor: "#9b8fd4",  corBg: "rgba(155,143,212,0.12)" },
-    { label: "No calendário",  value: agendados,      icon: CalendarDays, href: "/calendario", cor: "#f06080",  corBg: "rgba(240,96,128,0.12)" },
-    { label: "Aprovados",      value: aprovados,      icon: TrendingUp,   href: "/roteiros",   cor: "#6ee7b7",  corBg: "rgba(110,231,183,0.12)" },
-  ];
 
   const progMes = META_MES > 0 ? Math.min(100, (publicadosMes / META_MES) * 100) : 0;
   const nomeMes = format(hoje, "MMMM", { locale: ptBR });
@@ -104,7 +97,7 @@ export default async function Dashboard() {
             className="text-2xl md:text-3xl font-bold"
             style={{ color: "var(--foreground)", fontFamily: "var(--font-syne, inherit)", letterSpacing: "-0.01em" }}
           >
-            Bom dia! 👋
+            {saudacao}, {CONFIG.nome}!
           </h1>
           <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>Aqui está o resumo do seu estúdio.</p>
         </div>
@@ -120,32 +113,35 @@ export default async function Dashboard() {
         )}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        {stats.map(({ label, value, icon: Icon, href, cor, corBg }) => (
-          <Link
-            key={label}
-            href={href}
-            className="card-interactive block rounded-xl p-3 md:p-4 relative overflow-hidden"
-            style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}
-          >
-            {/* Barra de cor no topo */}
-            <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-xl" style={{ background: cor }} />
-            <div
-              className="w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center mb-3"
-              style={{ background: corBg }}
+      {/* O que vamos criar hoje? */}
+      <div className="mb-6">
+        <p className="section-label mb-3">O que vamos criar hoje?</p>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { href: "/roteiros?novo=1", label: "Reels",  sub: "Vídeo curto vertical",  icon: Video,      cor: "#f06080", corBg: "rgba(240,96,128,0.12)" },
+            { href: "/roteiros?novo=1", label: "Story",  sub: "Conteúdo de 24 horas",  icon: Smartphone, cor: "#9b8fd4", corBg: "rgba(155,143,212,0.12)" },
+            { href: "/roteiros?novo=1", label: "Post",   sub: "Imagem ou carrossel",    icon: FileImage,  cor: "#c8d92a", corBg: "rgba(200,217,42,0.12)" },
+          ].map(({ href, label, sub, icon: Icon, cor, corBg }) => (
+            <Link
+              key={label}
+              href={href}
+              className="card-interactive flex flex-col items-center gap-2 p-4 md:p-5 rounded-xl text-center relative overflow-hidden"
+              style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}
             >
-              <Icon size={16} style={{ color: cor }} />
-            </div>
-            <div
-              className="text-2xl md:text-3xl font-bold"
-              style={{ color: "var(--foreground)", fontFamily: "var(--font-syne, inherit)" }}
-            >
-              {value}
-            </div>
-            <div className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>{label}</div>
-          </Link>
-        ))}
+              <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-xl" style={{ background: cor }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: corBg }}>
+                <Icon size={19} style={{ color: cor }} />
+              </div>
+              <div>
+                <div className="font-bold text-base" style={{ color: "var(--foreground)", fontFamily: "var(--font-syne, inherit)" }}>{label}</div>
+                <div className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>{sub}</div>
+              </div>
+              <div className="text-xs font-medium mt-1 flex items-center gap-1" style={{ color: cor }}>
+                Criar roteiro <ArrowRight size={11} />
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* Próximos + Progresso */}

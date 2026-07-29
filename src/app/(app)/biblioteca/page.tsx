@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Search, Signal, CheckSquare, Square, CalendarPlus, X } from "lucide-react";
+import Link from "next/link";
+import { Search, Signal, CheckSquare, Square, CalendarPlus, X, Lightbulb, BookOpen, Library, CalendarDays, ArrowRight } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { STATUS_CONFIG, STATUS_LIST_EDITORIAL, FORMATOS_CONFIG, RESPONSAVEIS, getResponsavelConfig } from "@/lib/constants";
@@ -34,6 +35,7 @@ const STATUS_LOTE = [
 ];
 
 export default function BibliotecaPage() {
+  const [fase, setFase] = useState<"hub" | "lista">("hub");
   const [conteudos, setConteudos] = useState<Conteudo[]>([]);
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("");
@@ -130,6 +132,86 @@ export default function BibliotecaPage() {
     }
   }
 
+  if (fase === "hub") {
+    const hubCards = [
+      {
+        href: "/roteiros",
+        label: "Salvar uma ideia",
+        desc: "Anote uma ideia de conteúdo para o banco",
+        icon: Lightbulb,
+        cor: "text-yellow-500",
+        corBg: "bg-yellow-50",
+        cta: "Ir para roteiros",
+      },
+      {
+        href: "/roteiros?novo=1",
+        label: "Criar roteiro",
+        desc: "Gere um roteiro completo com IA",
+        icon: BookOpen,
+        cor: "text-purple-500",
+        corBg: "bg-purple-50",
+        cta: "Criar agora",
+      },
+      {
+        href: "/calendario",
+        label: "Calendário editorial",
+        desc: "Veja e organize os conteúdos agendados",
+        icon: CalendarDays,
+        cor: "text-pink-500",
+        corBg: "bg-pink-50",
+        cta: "Ver calendário",
+      },
+    ];
+
+    return (
+      <div className="p-6 md:p-10 max-w-2xl">
+        <div className="mb-8">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-1">· Biblioteca</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">O que você quer fazer?</h1>
+          <p className="text-sm text-gray-400">Escolha uma ação para começar</p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 mb-4">
+          {hubCards.map(({ href, label, desc, icon: Icon, cor, corBg, cta }) => (
+            <Link
+              key={label}
+              href={href}
+              className="group flex items-center gap-4 p-5 rounded-2xl border border-gray-100 bg-white hover:border-gray-300 hover:shadow-sm transition-all"
+            >
+              <div className={`w-11 h-11 rounded-xl ${corBg} flex items-center justify-center shrink-0`}>
+                <Icon size={20} className={cor} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm text-gray-900">{label}</div>
+                <div className="text-xs text-gray-400 mt-0.5">{desc}</div>
+              </div>
+              <div className="flex items-center gap-1 text-xs font-medium text-gray-300 group-hover:text-gray-600 transition-colors shrink-0">
+                {cta} <ArrowRight size={13} />
+              </div>
+            </Link>
+          ))}
+
+          {/* Card: explorar biblioteca */}
+          <button
+            onClick={() => setFase("lista")}
+            className="group flex items-center gap-4 p-5 rounded-2xl border border-gray-100 bg-white hover:border-gray-300 hover:shadow-sm transition-all text-left"
+          >
+            <div className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+              <Library size={20} className="text-emerald-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-sm text-gray-900">Explorar biblioteca</div>
+              <div className="text-xs text-gray-400 mt-0.5">Gerencie, filtre e atualize todos os conteúdos</div>
+            </div>
+            <div className="flex items-center gap-1 text-xs font-medium text-gray-300 group-hover:text-gray-600 transition-colors shrink-0">
+              Ver todos <ArrowRight size={13} />
+            </div>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-6 max-w-full">
       <div className="mb-4 flex items-end justify-between">
@@ -137,9 +219,14 @@ export default function BibliotecaPage() {
           <h1 className="text-xl font-semibold text-gray-900">Biblioteca</h1>
           <p className="text-gray-400 text-xs mt-0.5">{filtrados.length} conteúdo{filtrados.length !== 1 ? "s" : ""}{temFiltro ? " filtrados" : ""}</p>
         </div>
-        {temFiltro && (
-          <button onClick={limparFiltros} className="text-xs text-gray-400 hover:text-gray-700 underline">Limpar filtros</button>
-        )}
+        <div className="flex items-center gap-3">
+          <button onClick={() => setFase("hub")} className="text-xs text-gray-400 hover:text-gray-700 flex items-center gap-1">
+            ← Início
+          </button>
+          {temFiltro && (
+            <button onClick={limparFiltros} className="text-xs text-gray-400 hover:text-gray-700 underline">Limpar filtros</button>
+          )}
+        </div>
       </div>
 
       {/* Filtros */}

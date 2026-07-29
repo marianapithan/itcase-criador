@@ -33,19 +33,79 @@ const ETAPAS = [
   { value: "FUNDO", label: "Fundo", desc: "Conversão" },
 ];
 
-type Framework = { id: string; emoji: string; nome: string; categoria: string; descricao: string; prompt: string };
+type Framework = { id: string; emoji: string; nome: string; categoria: string; descricao: string; prompt: string; etapas: string[]; quando: string };
 
 const FRAMEWORKS: Framework[] = [
-  { id: "aida", emoji: "🎯", nome: "AIDA", categoria: "Frameworks", descricao: "Atenção → Interesse → Desejo → Ação. 3 ganchos, depois cada seção completa.", prompt: "Use o framework AIDA (Atenção → Interesse → Desejo → Ação). Comece com 3 opções de gancho (Atenção). Depois desenvolva cada seção completa: I (Interesse), D (Desejo), A (Ação/CTA). Ao final, entregue uma versão compacta do roteiro inteiro." },
-  { id: "pas", emoji: "⚡", nome: "PAS", categoria: "Frameworks", descricao: "Problema → Agitação → Solução. 3 ganchos, depois P, A, S completos + CTA.", prompt: "Use o framework PAS (Problema → Agitação → Solução). Comece com 3 opções de gancho. Depois escreva P completo (descreva o problema em detalhes), A completo (agite a dor, torne-a urgente e real), S completo (apresente a solução com CTA). Ao final, entregue uma versão compacta." },
-  { id: "bab", emoji: "🔄", nome: "BAB", categoria: "Frameworks", descricao: "Before → After → Bridge. Antes detalhado, depois ideal, ponte com CTA.", prompt: "Use o framework BAB (Before → After → Bridge). Before: descreva a situação atual com detalhes sensoriais e emocionais. After: pinte o cenário ideal de forma vívida. Bridge: mostre como a It Case é a ponte entre os dois estados, com CTA claro. Ao final, inclua uma versão curta em formato depoimento de cliente." },
-  { id: "pastor", emoji: "🌿", nome: "PASTOR", categoria: "Frameworks", descricao: "Problema, Amplificação, Solução/História, Transformação, Oferta, Resposta (CTA).", prompt: "Use o framework PASTOR: P (Problema), A (Amplificação), S (Solução/História), T (Transformação), O (Oferta), R (Resposta/CTA). Desenvolva cada bloco." },
-  { id: "quest", emoji: "🔑", nome: "QUEST", categoria: "Frameworks", descricao: "Qualify, Understand, Educate, Stimulate, Transition. Qualifique, eduque e converta.", prompt: "Use o framework QUEST: Q (Qualify), U (Understand), E (Educate), S (Stimulate), T (Transition). Desenvolva cada etapa." },
-  { id: "4ps", emoji: "🧩", nome: "4 Ps", categoria: "Frameworks", descricao: "Picture, Promise, Prove, Push. Imagem mental, promessa, prova e empurrão final.", prompt: "Use os 4 Ps: P (Picture: crie uma imagem mental vívida), P (Promise: faça uma promessa clara), P (Prove: apresente prova), P (Push: empurrão final com urgência e CTA)." },
-  { id: "slap", emoji: "👋", nome: "SLAP", categoria: "Frameworks", descricao: "Stop, Look, Act, Purchase. Curto, direto e agressivo para parar o scroll.", prompt: "Use o framework SLAP: S (Stop), L (Look), A (Act), P (Purchase). Peça curta, sem enrolação, texto de impacto." },
-  { id: "parabola", emoji: "📖", nome: "Parábola", categoria: "Narrativos", descricao: "Gancho → História → Lição → Conexão → CTA. História real com cena e diálogo.", prompt: "Use o framework PARÁBOLA: gancho que prende, história real ou verossímil (com cena, diálogo e detalhe sensorial), lição, conexão com a solução da It Case, CTA. Inclua versão curta para stories." },
-  { id: "18-ganchos", emoji: "🪝", nome: "18 Ganchos", categoria: "Ganchos", descricao: "3 variações para CADA categoria: DOR, TRANSFORMAÇÃO, CURIOSIDADE, URGÊNCIA, AUTORIDADE + 3 combinados.", prompt: "Gere 18 ganchos numerados, organizados em 6 grupos de 3: (1) DOR/PROBLEMA, (2) TRANSFORMAÇÃO, (3) CURIOSIDADE, (4) URGÊNCIA, (5) AUTORIDADE, (6) COMBINADOS. Total: 18 ganchos numerados." },
-  { id: "ganchos-video", emoji: "🎬", nome: "Ganchos de Vídeo", categoria: "Ganchos", descricao: "10 ganchos dos primeiros 3 segundos. Fala de abertura + indicação visual.", prompt: "Gere 10 ganchos para os primeiros 3 segundos de vídeo curto (Reels/TikTok). Para cada gancho: (a) FALA: o que dizer em voz, (b) VISUAL: o que aparece na tela. Formato numerado de 1 a 10." },
+  {
+    id: "aida", emoji: "🎯", nome: "AIDA", categoria: "Frameworks",
+    etapas: ["Atenção", "Interesse", "Desejo", "Ação"],
+    quando: "Lançamentos, anúncios, legendas, e-mails de venda, Reels de conversão e qualquer peça cujo objetivo seja levar à ação.",
+    descricao: "O framework clássico da persuasão. Captura atenção, constrói interesse, acende desejo e conduz à ação.",
+    prompt: "Use o framework AIDA (Atenção → Interesse → Desejo → Ação). Comece com 3 opções de gancho (Atenção). Depois desenvolva cada seção completa: I (Interesse), D (Desejo), A (Ação/CTA). Ao final, entregue uma versão compacta do roteiro inteiro.",
+  },
+  {
+    id: "pas", emoji: "⚡", nome: "PAS", categoria: "Frameworks",
+    etapas: ["Problema", "Agitação", "Solução"],
+    quando: "Conteúdo de conscientização, posts de engajamento, anúncios de produto, Stories e Reels que trabalham dor e solução.",
+    descricao: "Identifica o problema, amplifica a dor até o ponto de urgência e apresenta a solução como alívio natural.",
+    prompt: "Use o framework PAS (Problema → Agitação → Solução). Comece com 3 opções de gancho. Depois escreva P completo (descreva o problema em detalhes), A completo (agite a dor, torne-a urgente e real), S completo (apresente a solução com CTA). Ao final, entregue uma versão compacta.",
+  },
+  {
+    id: "bab", emoji: "🔄", nome: "BAB", categoria: "Frameworks",
+    etapas: ["Before", "After", "Bridge"],
+    quando: "Depoimentos, posts de transformação, anúncios de resultado, conteúdo para fundo de funil, histórias de antes e depois.",
+    descricao: "Cria contraste poderoso entre situação atual e estado desejado, posicionando o produto como a ponte.",
+    prompt: "Use o framework BAB (Before → After → Bridge). Before: descreva a situação atual com detalhes sensoriais e emocionais. After: pinte o cenário ideal de forma vívida. Bridge: mostre como a It Case é a ponte entre os dois estados, com CTA claro. Ao final, inclua uma versão curta em formato depoimento de cliente.",
+  },
+  {
+    id: "pastor", emoji: "🌿", nome: "PASTOR", categoria: "Frameworks",
+    etapas: ["Problema", "Amplificação", "História", "Transformação", "Oferta", "Resposta"],
+    quando: "Páginas de venda, e-mails longos, vídeos de vendas, lives de lançamento, scripts comerciais e qualquer peça que exija persuasão completa.",
+    descricao: "Framework de seis etapas que combina storytelling, prova social e apresentação de oferta.",
+    prompt: "Use o framework PASTOR: P (Problema), A (Amplificação), S (Solução/História), T (Transformação), O (Oferta), R (Resposta/CTA). Desenvolva cada bloco.",
+  },
+  {
+    id: "quest", emoji: "🔑", nome: "QUEST", categoria: "Frameworks",
+    etapas: ["Qualificar", "Entender", "Educar", "Estimular", "Transição"],
+    quando: "Conteúdo educativo de médio funil, sequências de e-mail, vídeos explicativos, carrosséis de educação e conteúdo de autoridade.",
+    descricao: "Qualifica a audiência certa, educa estrategicamente, estimula o desejo e conduz à transição natural.",
+    prompt: "Use o framework QUEST: Q (Qualify), U (Understand), E (Educate), S (Stimulate), T (Transition). Desenvolva cada etapa.",
+  },
+  {
+    id: "4ps", emoji: "🧩", nome: "4 Ps", categoria: "Frameworks",
+    etapas: ["Promessa", "Imagem", "Prova", "Empurrar"],
+    quando: "Anúncios diretos, headlines de páginas, e-mails de oferta, stories de venda e qualquer peça que precise de alta conversão em pouco espaço.",
+    descricao: "Faz uma promessa específica, cria imagem mental do resultado, prova com evidências e empurra para a ação.",
+    prompt: "Use os 4 Ps: P (Picture: crie uma imagem mental vívida), P (Promise: faça uma promessa clara), P (Prove: apresente prova), P (Push: empurrão final com urgência e CTA).",
+  },
+  {
+    id: "slap", emoji: "👋", nome: "SLAP", categoria: "Frameworks",
+    etapas: ["Parar", "Olhar", "Agir", "Comprar"],
+    quando: "Anúncios em feed, stories patrocinados, conteúdo de topo de funil para audiência fria, posts de alto alcance em redes sociais.",
+    descricao: "Projetado para ambientes de alta distração. Para a rolagem, prende o olhar e direciona para a compra.",
+    prompt: "Use o framework SLAP: S (Stop), L (Look), A (Act), P (Purchase). Peça curta, sem enrolação, texto de impacto.",
+  },
+  {
+    id: "parabola", emoji: "📖", nome: "Parábola", categoria: "Narrativos",
+    etapas: ["Situação", "Conflito", "Virada", "Resolução", "Moral"],
+    quando: "Conteúdo de branding, construção de autoridade, posts de valores e propósito, Reels de storytelling, e-mails de relacionamento.",
+    descricao: "Usa storytelling estruturado para criar conexão emocional profunda e comunicar valores de forma inesquecível.",
+    prompt: "Use o framework PARÁBOLA: gancho que prende, história real ou verossímil (com cena, diálogo e detalhe sensorial), lição, conexão com a solução da It Case, CTA. Inclua versão curta para stories.",
+  },
+  {
+    id: "18-ganchos", emoji: "🪝", nome: "18 Ganchos", categoria: "Ganchos",
+    etapas: ["Análise", "Seleção", "Execução", "Desenvolvimento", "CTA"],
+    quando: "Qualquer conteúdo que precise de uma abertura excepcional: posts, Reels, e-mails, carrosséis, anúncios e scripts.",
+    descricao: "Biblioteca com 18 tipos de ganchos de alta performance. A IA seleciona o gancho mais adequado para o objetivo.",
+    prompt: "Gere 18 ganchos numerados, organizados em 6 grupos de 3: (1) DOR/PROBLEMA, (2) TRANSFORMAÇÃO, (3) CURIOSIDADE, (4) URGÊNCIA, (5) AUTORIDADE, (6) COMBINADOS. Total: 18 ganchos numerados.",
+  },
+  {
+    id: "ganchos-video", emoji: "🎬", nome: "Ganchos de Vídeo", categoria: "Ganchos",
+    etapas: ["Gancho Visual", "Promessa Verbal", "Desenvolvimento", "Loop", "CTA"],
+    quando: "Roteiros de Reels, TikToks, YouTube Shorts, vídeos de Stories e qualquer conteúdo audiovisual onde os primeiros 3 segundos são determinantes.",
+    descricao: "Framework especializado em ganchos audiovisuais. Combina gancho visual, gancho verbal e estrutura de retenção.",
+    prompt: "Gere 10 ganchos para os primeiros 3 segundos de vídeo curto (Reels/TikTok). Para cada gancho: (a) FALA: o que dizer em voz, (b) VISUAL: o que aparece na tela. Formato numerado de 1 a 10.",
+  },
 ];
 
 const CATEGORIA_COR: Record<string, string> = {
@@ -517,8 +577,17 @@ function RoteirosPageInner() {
                             <span className="text-lg">{fw.emoji}</span>
                             <span className={`text-[11px] font-semibold ${ativo ? "text-gray-400" : CATEGORIA_COR[fw.categoria]}`}>{fw.categoria}</span>
                           </div>
-                          <div className={`font-semibold text-sm mb-1 ${ativo ? "text-white" : "text-gray-900"}`}>{fw.nome}</div>
-                          <div className={`text-[12px] leading-snug ${ativo ? "text-gray-300" : "text-gray-500"}`}>{fw.descricao}</div>
+                          <div className={`font-semibold text-sm mb-2 ${ativo ? "text-white" : "text-gray-900"}`}>{fw.nome}</div>
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {fw.etapas.map((e, i) => (
+                              <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${ativo ? "bg-white/20 text-gray-200" : "bg-gray-100 text-gray-600"}`}>{e}</span>
+                            ))}
+                          </div>
+                          <div className={`text-[11px] leading-snug mb-1.5 ${ativo ? "text-gray-300" : "text-gray-500"}`}>{fw.descricao}</div>
+                          <div className={`text-[10px] leading-snug ${ativo ? "text-gray-400" : "text-gray-400"}`}>
+                            <span className={`font-semibold ${ativo ? "text-gray-300" : "text-gray-500"}`}>Quando usar: </span>
+                            {fw.quando}
+                          </div>
                         </button>
                       );
                     })}
@@ -639,9 +708,21 @@ function RoteirosPageInner() {
                     return (
                       <button key={fw.id} onClick={() => setFrameworkIdeia(fw.id)}
                         className={`text-left p-3 rounded-xl border-2 transition-all ${ativo ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200 bg-white hover:border-gray-300"}`}>
-                        <div className="text-base mb-1">{fw.emoji}</div>
-                        <div className={`font-semibold text-xs mb-0.5 ${ativo ? "text-white" : "text-gray-900"}`}>{fw.nome}</div>
-                        <div className={`text-[11px] leading-snug ${ativo ? "text-gray-300" : "text-gray-400"}`}>{fw.descricao}</div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-base">{fw.emoji}</span>
+                          <span className={`text-[10px] font-semibold ${ativo ? "text-gray-400" : CATEGORIA_COR[fw.categoria]}`}>{fw.categoria}</span>
+                        </div>
+                        <div className={`font-semibold text-xs mb-1.5 ${ativo ? "text-white" : "text-gray-900"}`}>{fw.nome}</div>
+                        <div className="flex flex-wrap gap-1 mb-1.5">
+                          {fw.etapas.map((e, i) => (
+                            <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${ativo ? "bg-white/20 text-gray-200" : "bg-gray-100 text-gray-600"}`}>{e}</span>
+                          ))}
+                        </div>
+                        <div className={`text-[11px] leading-snug mb-1 ${ativo ? "text-gray-300" : "text-gray-400"}`}>{fw.descricao}</div>
+                        <div className={`text-[10px] leading-snug ${ativo ? "text-gray-400" : "text-gray-400"}`}>
+                          <span className={`font-semibold ${ativo ? "text-gray-300" : "text-gray-500"}`}>Quando: </span>
+                          {fw.quando}
+                        </div>
                       </button>
                     );
                   })}
