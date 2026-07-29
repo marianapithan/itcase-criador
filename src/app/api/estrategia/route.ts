@@ -25,6 +25,16 @@ async function garantirTabela() {
       `ALTER TABLE "EstudoEstrategico" ADD COLUMN "secAnaliseCompleta" TEXT NOT NULL DEFAULT ''`
     );
   } catch { /* coluna já existe */ }
+  try {
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "EstudoEstrategico" ADD COLUMN "secCriadora" TEXT NOT NULL DEFAULT ''`
+    );
+  } catch { /* coluna já existe */ }
+  try {
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "EstudoEstrategico" ADD COLUMN "secObjetivos" TEXT NOT NULL DEFAULT ''`
+    );
+  } catch { /* coluna já existe */ }
 }
 
 export async function GET() {
