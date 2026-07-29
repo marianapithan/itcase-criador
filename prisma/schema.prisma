@@ -170,6 +170,7 @@ model EstudoEstrategico {
   secPosicionamento   String   @default("")
   secMapa             String   @default("")
   secCriadora         String   @default("")
+  secObjetivos        String   @default("")
   secAnaliseCompleta  String   @default("") // Análise estratégica cruzada final
   status              String   @default("novo")
   criadoEm            DateTime @default(now())

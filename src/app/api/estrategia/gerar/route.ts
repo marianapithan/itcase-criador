@@ -102,6 +102,11 @@ async function garantirTabela() {
       `ALTER TABLE "Objecao" ADD COLUMN "contexto" TEXT`
     );
   } catch { /* coluna já existe */ }
+  try {
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "EstudoEstrategico" ADD COLUMN "secObjetivos" TEXT NOT NULL DEFAULT ''`
+    );
+  } catch { /* coluna já existe */ }
 }
 
 // ── Parsers de seção ──────────────────────────────────────────────────────
@@ -177,6 +182,18 @@ function parsearMercado(obj: Record<string, unknown>): Record<string, unknown> {
     oportunidades:   splitComma(obj.oportunidades),
     padroes_quebrar: splitComma(obj.padroes_quebrar),
     tendencias:      splitComma(obj.tendencias),
+  };
+}
+
+function parsearObjetivos(obj: Record<string, unknown>): Record<string, unknown> {
+  return {
+    objetivos:             splitComma(obj.objetivos),
+    estrategia_geral:      String(obj.estrategia_geral || ""),
+    tipo_conteudo:         String(obj.tipo_conteudo || ""),
+    formato_prioritario:   String(obj.formato_prioritario || ""),
+    frequencia_ideal:      String(obj.frequencia_ideal || ""),
+    metricas:              splitComma(obj.metricas),
+    dicas:                 splitComma(obj.dicas),
   };
 }
 
@@ -318,6 +335,29 @@ Retorne SOMENTE este JSON (arrays como texto separado por vírgula):
   return NextResponse.json({ ok: true, secPosicionamento });
 }
 
+async function gerarObjetivos(R: Record<string, string>) {
+  const prompt = `Criadora de conteúdo — ${CONFIG.nome}.
+Objetivos selecionados para o perfil: "${R.objetivos_selecionados || ""}"
+Outros objetivos informados: "${R.objetivos_outros || ""}"
+
+Retorne SOMENTE este JSON (arrays como texto separado por vírgula):
+{"objetivos":"obj1, obj2, obj3","estrategia_geral":"orientação geral em 2 frases","tipo_conteudo":"tipos de conteúdo mais indicados para esses objetivos","formato_prioritario":"Reels, Carrossel ou Stories — qual priorizar e por quê em 1 frase","frequencia_ideal":"quantas vezes por semana postar para atingir esses objetivos","metricas":"metrica1, metrica2, metrica3","dicas":"dica1, dica2, dica3"}`;
+
+  const r = await chamarIA({ funcionalidade: "estrategia-objetivos", sistema: SISTEMA, prompt, maxTokens: 500 });
+  if (!r.sucesso) return NextResponse.json({ erro: `IA objetivos: ${r.erro}` }, { status: 500 });
+
+  const raw = extrairJSON(r.conteudo);
+  if (!raw) return NextResponse.json({ erro: "JSON objetivos inválido. Tente novamente." }, { status: 500 });
+
+  const secObjetivos = JSON.stringify(parsearObjetivos(raw));
+  await prisma.estudoEstrategico.upsert({
+    where: { id: "default" },
+    update: { secObjetivos, respostas: JSON.stringify(R) },
+    create: { id: "default", secObjetivos, respostas: JSON.stringify(R) },
+  });
+  return NextResponse.json({ ok: true, secObjetivos });
+}
+
 async function gerarCriadora(R: Record<string, string>) {
   const prompt = `Criadora de conteúdo — ${CONFIG.nome}.
 Entrevista: abertura="${R.criadora_abertura || ""}" | frases="${R.criadora_frases || ""}" | transicoes="${R.criadora_transicoes || ""}" | formatos="${R.criadora_formatos || ""}" | ganchos="${R.criadora_ganchos || ""}" | visual="${R.criadora_visual || ""}"
@@ -445,6 +485,7 @@ export async function POST(req: NextRequest) {
   if (modulo === "mercado")        return gerarMercado(R);
   if (modulo === "posicionamento") return gerarPosicionamento(R);
   if (modulo === "criadora")       return gerarCriadora(R);
+  if (modulo === "objetivos")      return gerarObjetivos(R);
   if (modulo === "mapa")           return gerarMapa();
   if (modulo === "completo")       return gerarCompleto();
 

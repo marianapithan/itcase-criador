@@ -4,16 +4,16 @@ import {
   Loader2, ChevronLeft, Sparkles, Building2, User, Map, Globe,
   Target, BookOpen, CheckCircle2, AlertCircle, Lightbulb, TrendingUp,
   MessageSquare, Heart, Shield, Zap, Eye, Copy, Check, RotateCcw,
-  ArrowRight, Lock, Video,
+  ArrowRight, Lock, Video, Flag, CalendarDays,
 } from "lucide-react";
 
 // ── Tipos ────────────────────────────────────────────────────────────────
 
 type Respostas = Record<string, string>;
-type ModuloId = "empresa" | "persona" | "jornada" | "mercado" | "posicionamento" | "criadora" | "mapa";
+type ModuloId = "empresa" | "persona" | "jornada" | "mercado" | "posicionamento" | "criadora" | "objetivos" | "mapa";
 type StatusModulo = "vazio" | "preenchendo" | "gerado";
 type View = "overview" | "form" | "resultado" | "gerando" | "analise-completa" | "gerando-completo";
-type Pergunta = { campo: string; pergunta: string; exemplo: string };
+type Pergunta = { campo: string; pergunta: string; exemplo: string; tipo?: "multiselect"; opcoes?: string[] };
 type Modulo = {
   id: ModuloId; titulo: string; descCard: string; cor: string;
   icon: React.ElementType; perguntas: Pergunta[]; secKey: string;
@@ -92,6 +92,37 @@ const MODULOS: Modulo[] = [
     ],
   },
   {
+    id: "objetivos", titulo: "Objetivo do Perfil", cor: "#6ee7b7",
+    descCard: "Defina os objetivos reais do seu perfil — selecione quantos quiser.",
+    icon: Flag, secKey: "secObjetivos",
+    perguntas: [
+      {
+        campo: "objetivos_selecionados",
+        pergunta: "Qual é o real objetivo do seu perfil?",
+        exemplo: "Selecione todos que se aplicam",
+        tipo: "multiselect",
+        opcoes: [
+          "Ganhar seguidores",
+          "Aumentar visibilidade",
+          "Fechar vendas",
+          "Fechar parcerias",
+          "Construir autoridade",
+          "Educar o público",
+          "Gerar leads",
+          "Criar comunidade",
+          "Monetizar o perfil",
+          "Ser referência no nicho",
+          "Promover produtos/serviços",
+        ],
+      },
+      {
+        campo: "objetivos_outros",
+        pergunta: "Tem algum outro objetivo que não aparece na lista?",
+        exemplo: "Ex: Lançar um curso, conquistar representações de marca, entrar em programas de parceria...",
+      },
+    ],
+  },
+  {
     id: "mapa", titulo: "Mapa de Comunicação", cor: "#c8d92a",
     descCard: "Gerado automaticamente: 60+ insights com dores, desejos, objeções, gatilhos e temas.",
     icon: BookOpen, secKey: "secMapa",
@@ -122,6 +153,7 @@ function statusModulo(id: ModuloId, estudo: Record<string, string>, respostas: R
     mercado: ["mercado_"],
     posicionamento: ["pos_"],
     criadora: ["criadora_"],
+    objetivos: ["objetivos_"],
     mapa: [],
   };
   const temResposta = prefixos[id].some(p => Object.keys(respostas).some(k => k.startsWith(p) && respostas[k]?.trim()));
@@ -405,6 +437,39 @@ function ResultadoCriadora({ data }: { data: Record<string, unknown> }) {
   );
 }
 
+function ResultadoObjetivos({ data }: { data: Record<string, unknown> }) {
+  const cor = "#6ee7b7";
+  return (
+    <div>
+      {arr(data.objetivos).length > 0 && (
+        <div className="mb-5 p-4 rounded-xl" style={{ background: "rgba(110,231,183,0.1)", border: "1px solid rgba(110,231,183,0.25)" }}>
+          <p className="section-label mb-3" style={{ color: cor }}>Objetivos do Perfil</p>
+          <div className="flex flex-wrap gap-2">
+            {arr(data.objetivos).map((obj, i) => (
+              <span key={i} className="px-3 py-1.5 rounded-full text-xs font-semibold" style={{ background: `${cor}18`, color: cor, border: `1px solid ${cor}30` }}>
+                {obj}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      <Campo label="Estratégia Geral" valor={data.estrategia_geral} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        {([["Tipo de Conteúdo", data.tipo_conteudo], ["Formato Prioritário", data.formato_prioritario], ["Frequência Ideal", data.frequencia_ideal]] as [string, unknown][]).map(([l, v]) => v ? (
+          <div key={l} className="p-3 rounded-xl" style={{ background: "var(--accent)" }}>
+            <p className="text-[10px] mb-1 section-label">{l}</p>
+            <p className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>{String(v)}</p>
+          </div>
+        ) : null)}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Campo label="Métricas a Acompanhar" valor={arr(data.metricas)} />
+        <Campo label="Dicas" valor={arr(data.dicas)} />
+      </div>
+    </div>
+  );
+}
+
 function ResultadoMapa({ data }: { data: Record<string, string[]> }) {
   const categorias = [
     { chave: "dores", label: "Dores", icon: Heart, cor: "#f06080" },
@@ -449,6 +514,7 @@ export default function PersonaPage() {
   const [gerando, setGerando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [lembreteAgendado, setLembreteAgendado] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
@@ -521,6 +587,25 @@ export default function PersonaPage() {
       const data = await res.json() as Record<string, string>;
       if (!res.ok) throw new Error((data as { erro?: string }).erro ?? `Erro ${res.status}`);
       setEstudo(prev => ({ ...prev, ...data }));
+
+      // Agenda lembrete no calendário para daqui 90 dias
+      try {
+        const dataLembrete = new Date();
+        dataLembrete.setDate(dataLembrete.getDate() + 90);
+        await fetch("/api/conteudos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            titulo: "Refazer Estudo de Público",
+            descricao: "Chegou a hora de refazer o Estudo de Público! Em 3 meses o seu público pode ter mudado — atualize a análise para que o conteúdo continue conversando com as pessoas certas.",
+            formato: "POST_ESTATICO",
+            status: "IDEIA",
+            dataplanejada: dataLembrete.toISOString(),
+          }),
+        });
+        setLembreteAgendado(true);
+      } catch { /* não bloqueia se o lembrete falhar */ }
+
       setView("analise-completa");
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Erro desconhecido. Tente novamente.");
@@ -674,29 +759,72 @@ export default function PersonaPage() {
           </div>
 
           <div className="space-y-6">
-            {modulo.perguntas.map((p, i) => (
-              <div key={p.campo}>
-                <label className="block mb-2">
-                  <span className="text-xs font-bold mr-2 tabular-nums" style={{ color: modulo.cor, fontFamily: "var(--font-syne, inherit)" }}>
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{p.pergunta}</span>
-                </label>
-                <textarea
-                  value={respostas[p.campo] ?? ""}
-                  onChange={e => atualizarResposta(p.campo, e.target.value)}
-                  rows={4}
-                  placeholder={p.exemplo}
-                  className="w-full text-sm rounded-xl px-4 py-3 focus:outline-none transition resize-none"
-                  style={{
-                    background: "var(--card-bg)", color: "var(--foreground)",
-                    border: `1px solid ${respostas[p.campo] ? modulo.cor + "60" : "var(--card-border)"}`,
-                  }}
-                  onFocus={e => (e.target.style.borderColor = modulo.cor + "80")}
-                  onBlur={e => (e.target.style.borderColor = respostas[p.campo] ? modulo.cor + "60" : "var(--card-border)")}
-                />
-              </div>
-            ))}
+            {modulo.perguntas.map((p, i) => {
+              if (p.tipo === "multiselect" && p.opcoes) {
+                const selecionados = (respostas[p.campo] ?? "").split(",").map(s => s.trim()).filter(Boolean);
+                const toggle = (opcao: string) => {
+                  const set = new Set(selecionados);
+                  if (set.has(opcao)) set.delete(opcao); else set.add(opcao);
+                  atualizarResposta(p.campo, Array.from(set).join(", "));
+                };
+                return (
+                  <div key={p.campo}>
+                    <label className="block mb-3">
+                      <span className="text-xs font-bold mr-2 tabular-nums" style={{ color: modulo.cor, fontFamily: "var(--font-syne, inherit)" }}>
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{p.pergunta}</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {p.opcoes.map(opcao => {
+                        const ativo = selecionados.includes(opcao);
+                        return (
+                          <button
+                            key={opcao}
+                            type="button"
+                            onClick={() => toggle(opcao)}
+                            className="px-3 py-2 rounded-full text-xs font-medium transition-all"
+                            style={{
+                              background: ativo ? `${modulo.cor}22` : "var(--card-bg)",
+                              color: ativo ? modulo.cor : "var(--muted)",
+                              border: ativo ? `1.5px solid ${modulo.cor}70` : "1.5px solid var(--card-border)",
+                            }}
+                          >
+                            {ativo && <span className="mr-1">✓</span>}{opcao}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {selecionados.length > 0 && (
+                      <p className="mt-2 text-xs" style={{ color: "var(--muted)" }}>{selecionados.length} objetivo{selecionados.length !== 1 ? "s" : ""} selecionado{selecionados.length !== 1 ? "s" : ""}</p>
+                    )}
+                  </div>
+                );
+              }
+              return (
+                <div key={p.campo}>
+                  <label className="block mb-2">
+                    <span className="text-xs font-bold mr-2 tabular-nums" style={{ color: modulo.cor, fontFamily: "var(--font-syne, inherit)" }}>
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{p.pergunta}</span>
+                  </label>
+                  <textarea
+                    value={respostas[p.campo] ?? ""}
+                    onChange={e => atualizarResposta(p.campo, e.target.value)}
+                    rows={4}
+                    placeholder={p.exemplo}
+                    className="w-full text-sm rounded-xl px-4 py-3 focus:outline-none transition resize-none"
+                    style={{
+                      background: "var(--card-bg)", color: "var(--foreground)",
+                      border: `1px solid ${respostas[p.campo] ? modulo.cor + "60" : "var(--card-border)"}`,
+                    }}
+                    onFocus={e => (e.target.style.borderColor = modulo.cor + "80")}
+                    onBlur={e => (e.target.style.borderColor = respostas[p.campo] ? modulo.cor + "60" : "var(--card-border)")}
+                  />
+                </div>
+              );
+            })}
           </div>
 
           {erro && (
@@ -776,6 +904,7 @@ export default function PersonaPage() {
             {modulo.id === "mercado"        && <ResultadoMercado data={secData} />}
             {modulo.id === "posicionamento" && <ResultadoPosicionamento data={secData} />}
             {modulo.id === "criadora"       && <ResultadoCriadora data={secData} />}
+            {modulo.id === "objetivos"      && <ResultadoObjetivos data={secData} />}
             {modulo.id === "mapa"           && <ResultadoMapa data={secData as Record<string, string[]>} />}
           </div>
 
@@ -855,6 +984,17 @@ export default function PersonaPage() {
                 <p className="text-sm leading-relaxed" style={{ color: "var(--foreground)" }}>{analise[chave]}</p>
               </div>
             ) : null)}
+          </div>
+
+          <div className="mt-6 p-4 rounded-xl flex items-start gap-3" style={{ background: "rgba(110,231,183,0.08)", border: "1px solid rgba(110,231,183,0.2)" }}>
+            <CalendarDays size={16} style={{ color: "#6ee7b7" }} className="shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold mb-1" style={{ color: "#6ee7b7" }}>Refaça este estudo em 3 meses</p>
+              <p className="text-xs leading-relaxed" style={{ color: "var(--muted)" }}>
+                O seu público e o mercado mudam constantemente. Recomendamos refazer o Estudo de Público a cada 3 meses para garantir que o seu conteúdo continue conversando com as pessoas certas.
+                {lembreteAgendado && <><br /><span style={{ color: "#6ee7b7" }}>✓ Lembrete agendado no seu calendário para daqui 90 dias.</span></>}
+              </p>
+            </div>
           </div>
         </div>
       </div>
