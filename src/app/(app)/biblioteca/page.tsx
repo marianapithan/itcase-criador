@@ -5,6 +5,7 @@ import { Search, Signal, CheckSquare, Square, CalendarPlus, X, Lightbulb, BookOp
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { STATUS_CONFIG, STATUS_LIST_EDITORIAL, FORMATOS_CONFIG, RESPONSAVEIS, getResponsavelConfig } from "@/lib/constants";
+import { StatusBadge } from "@/components/StatusBadge";
 
 type Conteudo = {
   id: string; titulo: string; formato: string; status: string;
@@ -322,8 +323,8 @@ export default function BibliotecaPage() {
                     </button>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900 truncate max-w-xs">{c.titulo}</div>
-                    {c.tema && <div className="text-gray-400 mt-0.5 text-[10px] truncate">{c.tema.titulo}</div>}
+                    <div className="font-medium text-gray-900 line-clamp-2">{c.titulo}</div>
+                    {c.tema && <div className="text-gray-400 mt-0.5 text-[10px]">{c.tema.titulo}</div>}
                   </td>
                   <td className="px-3 py-3">
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
@@ -333,10 +334,7 @@ export default function BibliotecaPage() {
                     </span>
                   </td>
                   <td className="px-3 py-3">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${status.cor}`}>
-                      <span className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: status.dot }} />
-                      {status.label}
-                    </span>
+                    <StatusBadge status={c.status} />
                   </td>
                   <td className={`px-3 py-3 text-xs font-medium ${producaoCor}`}>{producaoStep}</td>
                   <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>

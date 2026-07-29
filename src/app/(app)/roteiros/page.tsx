@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Sparkles, FileText, Plus, ChevronRight, X, Check, Clock, Trash2, CalendarPlus, ChevronDown, ChevronUp, Pencil, Copy, Hash, Eye, EyeOff, Copy as CopyIcon, Calendar, CalendarX } from "lucide-react";
 import { STATUS_CONFIG, STATUS_LIST_EDITORIAL, FORMATOS_CONFIG, RESPONSAVEIS, getResponsavelConfig } from "@/lib/constants";
+import { StatusBadge } from "@/components/StatusBadge";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -529,7 +530,7 @@ function RoteirosPageInner() {
                 onClick={() => { setSelecionado(c); setCriandoNovo(false); setTelaAcao(null); setEditandoRoteiro(false); setEditandoLegenda(false); setHashtags(""); setMostrarPreview(false); }}
                 className={`w-full text-left p-3 rounded-lg text-xs transition-colors ${selecionado?.id === c.id && !criandoNovo ? "bg-gray-900 text-white" : "hover:bg-gray-50 text-gray-700"}`}
               >
-                <div className="font-medium truncate">{c.titulo}</div>
+                <div className="font-medium line-clamp-2">{c.titulo}</div>
                 <div className="mt-0.5 flex items-center gap-1 text-gray-400">
                   <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: dot }} />
                   {fmt}
@@ -720,7 +721,7 @@ function RoteirosPageInner() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-2">
                   <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">{FORMATOS_CONFIG[selecionado.formato]?.label ?? selecionado.formato}</span>
-                  {badgeStatus(selecionado.status)}
+                  <StatusBadge status={selecionado.status} />
                   {selecionado.etapaFunil && (
                     <span className="text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full">
                       {selecionado.etapaFunil === "TOPO" ? "Topo do funil" : selecionado.etapaFunil === "MEIO" ? "Meio do funil" : "Fundo do funil"}

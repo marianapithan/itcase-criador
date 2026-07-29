@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/client";
 import { Lightbulb, BookOpen, CalendarDays, Video, Smartphone, FileImage, AlertCircle, CheckCircle2, Clock, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { STATUS_CONFIG, FORMATOS_CONFIG } from "@/lib/constants";
+import { StatusBadge } from "@/components/StatusBadge";
 import { CONFIG } from "@/lib/config";
 import { format, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -185,10 +186,10 @@ export default async function Dashboard() {
                       {dataLabel}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium truncate" style={{ color: "var(--foreground)" }}>{c.titulo}</div>
+                      <div className="text-xs font-medium line-clamp-2" style={{ color: "var(--foreground)" }}>{c.titulo}</div>
                       {fmt && <div className="text-[10px]" style={{ color: "var(--muted)" }}>{fmt.label}</div>}
                     </div>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${s.cor}`}>{s.label}</span>
+                    <StatusBadge status={c.status} />
                   </Link>
                 );
               })}
@@ -308,11 +309,11 @@ export default async function Dashboard() {
                     borderBottom: i < recentes.length - 1 ? "1px solid var(--card-border)" : "none",
                   }}
                 >
-                  <div>
-                    <div className="text-sm font-medium" style={{ color: "var(--foreground)" }}>{c.titulo}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium line-clamp-2" style={{ color: "var(--foreground)" }}>{c.titulo}</div>
                     {c.tema && <div className="text-xs" style={{ color: "var(--muted)" }}>{c.tema.titulo}</div>}
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.cor}`}>{s.label}</span>
+                  <StatusBadge status={c.status} />
                 </Link>
               );
             })}

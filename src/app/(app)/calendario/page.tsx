@@ -767,7 +767,7 @@ export default function CalendarioPage() {
                               touchAction: "none",
                             }}>
                             <div className="px-1.5 py-1 pointer-events-none select-none h-full relative">
-                              <div className="text-[11px] font-semibold leading-tight truncate pr-5" style={{ color: cfg.text }}>{ev.titulo}</div>
+                              <div className="text-[11px] font-semibold leading-tight line-clamp-2 pr-5" style={{ color: cfg.text }}>{ev.titulo}</div>
                               <div className="text-[10px] mt-0.5 flex items-center gap-1" style={{ color: cfg.text, opacity: 0.7 }}>
                                 <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: cfg.dot }} />
                                 {String(h).padStart(2, "0")}:{String(m).padStart(2, "0")} · {cfg.label}

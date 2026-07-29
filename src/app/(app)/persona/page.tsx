@@ -1065,7 +1065,7 @@ export default function PersonaPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-0.5">
-                      <p className="text-sm font-semibold truncate" style={{ color: "var(--foreground)", fontFamily: "var(--font-syne, inherit)" }}>{m.titulo}</p>
+                      <p className="text-sm font-semibold line-clamp-2" style={{ color: "var(--foreground)", fontFamily: "var(--font-syne, inherit)" }}>{m.titulo}</p>
                       <BadgeStatus status={st} cor={m.cor} />
                     </div>
                     <p className="text-xs leading-relaxed" style={{ color: "var(--muted)" }}>{m.descCard}</p>

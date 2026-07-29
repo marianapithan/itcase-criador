@@ -7,6 +7,7 @@ import {
   Zap, CheckSquare, Square,
 } from "lucide-react";
 import { FORMATOS_CONFIG, STATUS_CONFIG } from "@/lib/constants";
+import { StatusBadge } from "@/components/StatusBadge";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -378,7 +379,7 @@ export default function TrafegoPage() {
               {ativas.map(c => (
                 <div key={c.id} className="flex items-center gap-3 p-3 border border-green-200 bg-green-50 rounded-xl">
                   <div className="w-2 h-2 rounded-full bg-green-500 shrink-0 animate-pulse" />
-                  <div className="flex-1 min-w-0"><p className="text-sm font-medium text-gray-900 truncate">{c.titulo}</p><p className="text-xs text-gray-400">{c.trafegoObjetivo}</p></div>
+                  <div className="flex-1 min-w-0"><p className="text-sm font-medium text-gray-900 line-clamp-2">{c.titulo}</p><p className="text-xs text-gray-400">{c.trafegoObjetivo}</p></div>
                   <button onClick={() => iniciarAIDA(c)} className="text-xs text-orange-500 font-medium shrink-0">Refazer →</button>
                 </div>
               ))}
@@ -402,15 +403,14 @@ export default function TrafegoPage() {
           <div className="space-y-2">
             {lista.map(c => {
               const fmt = FORMATOS_CONFIG[c.formato];
-              const st = STATUS_CONFIG[c.status];
               return (
                 <button key={c.id} onClick={() => iniciarAIDA(c)} className="w-full flex items-center gap-3 p-3 border border-gray-100 bg-white rounded-xl hover:border-gray-300 hover:shadow-sm transition-all text-left">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0" style={{ backgroundColor: fmt?.bg ?? "#F3F4F6", color: fmt?.text ?? "#374151" }}>{(fmt?.label ?? c.formato).slice(0, 2)}</div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{c.titulo}</p>
+                    <p className="text-sm font-medium text-gray-900 line-clamp-2">{c.titulo}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[11px] text-gray-400">{fmt?.label ?? c.formato}</span>
-                      {st && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${st.cor}`}>{st.label}</span>}
+                      <StatusBadge status={c.status} />
                       {c.dataPublicacao && <span className="text-[10px] text-blue-500">{new Date(c.dataPublicacao).toLocaleDateString("pt-BR")}</span>}
                     </div>
                   </div>
