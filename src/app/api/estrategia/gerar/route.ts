@@ -261,7 +261,7 @@ async function gerarJornada(R: Record<string, string>) {
 Retorne SOMENTE este JSON. Cada etapa_N: "descricao|emocao|acao":
 {"etapa_1":"descricao|emocao|acao","etapa_2":"descricao|emocao|acao","etapa_3":"descricao|emocao|acao","etapa_4":"descricao|emocao|acao","etapa_5":"descricao|emocao|acao","tenta_sozinha":"...","solucoes_frustradas":"s1, s2","onde_trava":"...","o_que_falta":"..."}`;
 
-  const r = await chamarIA({ funcionalidade: "estrategia-jornada", sistema: SISTEMA, prompt, maxTokens: 350 });
+  const r = await chamarIA({ funcionalidade: "estrategia-jornada", sistema: SISTEMA, prompt, maxTokens: 600 });
   if (!r.sucesso) return NextResponse.json({ erro: `IA jornada: ${r.erro}` }, { status: 500 });
 
   const raw = extrairJSON(r.conteudo);
@@ -282,7 +282,7 @@ async function gerarMercado(R: Record<string, string>) {
 Retorne SOMENTE este JSON. Cada concorrente_N: "nome|como_comunica|promessa|fraqueza":
 {"concorrente_1":"nome|como_comunica|promessa|fraqueza","concorrente_2":"nome|como_comunica|promessa|fraqueza","concorrente_3":"nome|como_comunica|promessa|fraqueza","oportunidades":"op1, op2, op3","padroes_quebrar":"p1, p2","tendencias":"t1, t2, t3"}`;
 
-  const r = await chamarIA({ funcionalidade: "estrategia-mercado", sistema: SISTEMA, prompt, maxTokens: 350 });
+  const r = await chamarIA({ funcionalidade: "estrategia-mercado", sistema: SISTEMA, prompt, maxTokens: 600 });
   if (!r.sucesso) return NextResponse.json({ erro: `IA mercado: ${r.erro}` }, { status: 500 });
 
   const raw = extrairJSON(r.conteudo);

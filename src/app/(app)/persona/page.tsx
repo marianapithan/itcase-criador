@@ -661,11 +661,17 @@ export default function PersonaPage() {
           </div>
 
           {st === "gerado" && (
-            <div className="mb-6 p-4 rounded-xl flex items-center gap-3 cursor-pointer" style={{ background: "rgba(110,231,183,0.08)", border: "1px solid rgba(110,231,183,0.2)" }} onClick={() => setView("resultado")}>
+            <div className="mb-4 p-4 rounded-xl flex items-center gap-3 cursor-pointer" style={{ background: "rgba(110,231,183,0.08)", border: "1px solid rgba(110,231,183,0.2)" }} onClick={() => setView("resultado")}>
               <CheckCircle2 size={16} style={{ color: "#6ee7b7" }} className="shrink-0" />
               <p className="text-xs" style={{ color: "#6ee7b7" }}>Análise já gerada. <strong>Clique aqui para ver</strong> — ou edite as respostas abaixo e gere novamente.</p>
             </div>
           )}
+
+          <div className="mb-6 px-4 py-3 rounded-xl" style={{ background: "rgba(139,116,200,0.08)", border: "1px solid rgba(139,116,200,0.2)" }}>
+            <p className="text-xs leading-relaxed" style={{ color: "#8B74C8" }}>
+              <strong>Quanto mais informações você trouxer para nós, melhor ficará a criação de conteúdo</strong> — porque ela vai conversar diretamente com o seu público ideal.
+            </p>
+          </div>
 
           <div className="space-y-6">
             {modulo.perguntas.map((p, i) => (
@@ -866,11 +872,16 @@ export default function PersonaPage() {
         <div className="mb-8">
           <p className="section-label mb-2">· Diagnóstico Estratégico</p>
           <h1 className="text-2xl md:text-3xl font-bold mb-2" style={{ color: "var(--foreground)", fontFamily: "var(--font-syne, inherit)" }}>
-            Estudo de Persona & Produto
+            Estudo de Público & Produto
           </h1>
-          <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>
+          <p className="text-sm leading-relaxed mb-3" style={{ color: "var(--muted)" }}>
             Preencha cada módulo no seu ritmo. A IA gera a análise logo que você conclui cada etapa — sem precisar esperar o questionário inteiro.
           </p>
+          <div className="px-4 py-3 rounded-xl" style={{ background: "rgba(139,116,200,0.08)", border: "1px solid rgba(139,116,200,0.2)" }}>
+            <p className="text-xs leading-relaxed" style={{ color: "#8B74C8" }}>
+              <strong>Quanto mais informações você trouxer para nós, melhor ficará a criação de conteúdo</strong> — porque ela vai conversar diretamente com o seu público ideal.
+            </p>
+          </div>
           {qtdGerados > 0 && (
             <div className="mt-3 flex items-center gap-2">
               <div className="flex-1 h-1.5 rounded-full" style={{ background: "var(--accent)" }}>
@@ -918,13 +929,20 @@ export default function PersonaPage() {
                       <BadgeStatus status={st} cor={m.cor} />
                     </div>
                     <p className="text-xs leading-relaxed" style={{ color: "var(--muted)" }}>{m.descCard}</p>
-                    <div className="mt-3 flex items-center gap-1 text-xs font-semibold" style={{ color: st === "gerado" ? m.cor : "#8B74C8" }}>
+                    <div className="mt-3 flex items-center gap-2 flex-wrap">
                       {st === "gerado" ? (
-                        <><Eye size={11} /> Ver análise</>
-                      ) : st === "preenchendo" ? (
-                        <><ArrowRight size={11} /> Continuar preenchendo</>
+                        <>
+                          <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: m.cor }}>
+                            <Eye size={11} /> Ver análise
+                          </span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(139,116,200,0.12)", color: "#8B74C8" }}>
+                            Responder novamente
+                          </span>
+                        </>
                       ) : (
-                        <><ArrowRight size={11} /> {m.perguntas.length === 0 ? "Gerar automaticamente" : "Responder"}</>
+                        <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: "#8B74C8" }}>
+                          <ArrowRight size={11} /> {m.perguntas.length === 0 ? "Gerar automaticamente" : "Responder agora"}
+                        </span>
                       )}
                     </div>
                   </div>

@@ -29,7 +29,7 @@ const nav = [
   { href: "/tendencias",  label: "Radar IA",            icon: Radar },
   { href: "/trafego",     label: "Tráfego Pago",        icon: Megaphone },
   { href: "/objecoes",    label: "Mapa de Objeções",    icon: ShieldAlert },
-  { href: "/persona",     label: "Estudo de Persona",   icon: User },
+  { href: "/persona",     label: "Estudo de Público",   icon: User },
   { href: "/relatorio",   label: "Relatório PDF",       icon: FileBarChart },
 ];
 

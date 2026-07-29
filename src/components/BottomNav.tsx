@@ -59,7 +59,7 @@ export function BottomNav() {
               { href: "/temas",     label: "Temas & Microtemas",  icon: Lightbulb,    color: "var(--foreground)" },
               { href: "/biblioteca",label: "Biblioteca",           icon: Library,      color: "var(--foreground)" },
               { href: "/tendencias",label: "Radar IA",             icon: Radar,        color: "#9b8fd4" },
-              { href: "/persona",   label: "Estudo de Persona",    icon: User,         color: "#9b8fd4" },
+              { href: "/persona",   label: "Estudo de Público",    icon: User,         color: "#9b8fd4" },
               { href: "/relatorio", label: "Relatório PDF",        icon: FileBarChart, color: "#9b8fd4" },
             ].map(({ href, label, icon: Icon, color }) => (
               <Link key={href} href={href} onClick={() => setMenuAberto(false)}
