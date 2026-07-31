@@ -41,7 +41,7 @@ function getCookie(name: string): string {
   return match ? decodeURIComponent(match[1]) : "";
 }
 
-export function Sidebar() {
+export function Sidebar({ nomeNegocio = "" }: { nomeNegocio?: string }) {
   const path = usePathname();
   const router = useRouter();
   const [nomeUsuario, setNomeUsuario] = useState("");
@@ -63,8 +63,8 @@ export function Sidebar() {
         <div className="flex items-center gap-2">
           <Sparkles size={18} style={{ color: "#c8d92a" }} />
           <div>
-            <div className="font-bold text-sm leading-tight gradient-text-brand" style={{ fontFamily: "var(--font-syne, inherit)" }}>{CONFIG.nome}</div>
-            <div className="text-[11px] leading-tight" style={{ color: "#9b8fd4" }}>{CONFIG.tagline}</div>
+            <div className="font-bold text-sm leading-tight gradient-text-brand" style={{ fontFamily: "var(--font-syne, inherit)" }}>{CONFIG.plataforma}</div>
+            {nomeNegocio && <div className="text-[11px] leading-tight" style={{ color: "#9b8fd4" }}>{nomeNegocio}</div>}
           </div>
         </div>
       </div>

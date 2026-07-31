@@ -1,14 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { chamarIA, contextoCerebro } from "@/lib/ai/gateway";
+import { requireAuth } from "@/lib/auth-session";
 
 export const maxDuration = 60;
 export const runtime = "nodejs";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const sessao = await requireAuth(req);
+  if (!sessao) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  const { userId } = sessao;
+
   const [objecoes, persona] = await Promise.all([
-    prisma.objecao.findMany({ orderBy: { criadoEm: "asc" } }),
-    prisma.personaConfig.findUnique({ where: { id: "default" } }),
+    prisma.objecao.findMany({ where: { userId }, orderBy: { criadoEm: "asc" } }),
+    prisma.personaConfig.findUnique({ where: { id: userId } }),
   ]);
 
   if (objecoes.length === 0) return NextResponse.json({ erro: "Nenhuma objeção cadastrada." }, { status: 400 });
@@ -35,7 +40,7 @@ export async function POST() {
     `[{"id":"<id>","prioridade":1,"raiz":"<raiz>","respostaCurta":"<resposta 2 linhas>","prevencao":"<1 frase de conteudo>"}]`,
   ].join("\n");
 
-  const resultado = await chamarIA({ funcionalidade: "objecoes-analisar", sistema: contextoCerebro(), prompt, maxTokens: 900 });
+  const resultado = await chamarIA({ funcionalidade: "objecoes-analisar", sistema: await contextoCerebro(userId), prompt, maxTokens: 900 });
   if (!resultado.sucesso) return NextResponse.json({ erro: resultado.erro }, { status: 400 });
 
   const texto = resultado.conteudo.replace(/```json\n?/gi, "").replace(/```\n?/g, "").trim();
@@ -58,6 +63,6 @@ export async function POST() {
     )
   );
 
-  const atualizadas = await prisma.objecao.findMany({ orderBy: [{ prioridade: "asc" }, { criadoEm: "asc" }] });
+  const atualizadas = await prisma.objecao.findMany({ where: { userId }, orderBy: [{ prioridade: "asc" }, { criadoEm: "asc" }] });
   return NextResponse.json(atualizadas);
 }

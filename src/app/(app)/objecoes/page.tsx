@@ -4,8 +4,9 @@ import {
   ShieldAlert, Plus, ArrowLeft, Sparkles, Trash2, ChevronRight,
   Zap, MessageSquare, FileVideo, Layout, ImageIcon, Mail,
   Phone, HelpCircle, CheckCircle, AlertCircle, BarChart3,
-  Copy, Check, CalendarDays, Megaphone, Play,
+  CalendarDays, Megaphone, Play, Check,
 } from "lucide-react";
+import { CopyBtn } from "@/components/CopyBtn";
 
 type Objecao = {
   id: string;
@@ -15,6 +16,9 @@ type Objecao = {
   etapaVenda?: string;
   consegueContornar?: string;
   clienteCompraDepois?: string;
+  clienteConheciaProduto?: string;
+  objetivoCliente?: string;
+  crencaGerou?: string;
   respostaAtual?: string;
   prioridade?: number;
   raiz?: string;
@@ -33,6 +37,7 @@ type RoteiroData = {
 };
 
 const FREQUENCIAS = ["Alta: acontece toda semana", "Média: algumas vezes por mês", "Baixa: raramente"];
+const CONHECIMENTO = ["Sim, conhecia bem o produto", "Conhecia superficialmente", "Não, era o primeiro contato"];
 const ETAPAS = ["Primeiro contato", "Apresentação do produto", "Negociação de preço", "Fechamento", "Pós-venda"];
 const CONTORNA = ["Sim, quase sempre", "Às vezes", "Raramente ou nunca"];
 const COMPRA_DEPOIS = ["Sempre ou quase sempre", "Às vezes", "Raramente", "Nunca volta"];
@@ -65,16 +70,6 @@ const PRIORIDADE_BADGE = [
 function s(v: unknown): string { return v == null ? "" : String(v); }
 function b(v: unknown): boolean { return v != null && v !== "" && v !== false; }
 
-function CopyBtn({ text }: { text: string }) {
-  const [ok, setOk] = useState(false);
-  return (
-    <button onClick={async () => { await navigator.clipboard.writeText(text); setOk(true); setTimeout(() => setOk(false), 2000); }}
-      className="flex items-center gap-1 text-xs px-2 py-1 rounded border border-gray-200 text-gray-400 hover:border-gray-400 hover:text-gray-700 transition-colors shrink-0">
-      {ok ? <Check size={11} className="text-green-500" /> : <Copy size={11} />}
-      {ok ? "Copiado!" : "Copiar"}
-    </button>
-  );
-}
 
 function renderRoteiro(roteiro: Record<string, unknown>, formato: string) {
   if (formato === "reels") {
@@ -230,6 +225,9 @@ export default function ObjecoesPage() {
   const [metaEtapa, setMetaEtapa] = useState("");
   const [metaContorna, setMetaContorna] = useState("");
   const [metaCompra, setMetaCompra] = useState("");
+  const [metaConhecimento, setMetaConhecimento] = useState("");
+  const [metaObjetivoCliente, setMetaObjetivoCliente] = useState("");
+  const [metaCrencaGerou, setMetaCrencaGerou] = useState("");
   const [metaResposta, setMetaResposta] = useState("");
   const [salvandoObjecao, setSalvandoObjecao] = useState(false);
 
@@ -253,10 +251,10 @@ export default function ObjecoesPage() {
     await fetch("/api/objecoes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ texto: novaObjecao.trim(), contexto: novoContexto.trim() || null, frequencia: metaFreq, etapaVenda: metaEtapa, consegueContornar: metaContorna, clienteCompraDepois: metaCompra, respostaAtual: metaResposta || null }),
+      body: JSON.stringify({ texto: novaObjecao.trim(), contexto: novoContexto.trim() || null, frequencia: metaFreq, etapaVenda: metaEtapa, consegueContornar: metaContorna, clienteCompraDepois: metaCompra, clienteConheciaProduto: metaConhecimento || null, objetivoCliente: metaObjetivoCliente.trim() || null, crencaGerou: metaCrencaGerou.trim() || null, respostaAtual: metaResposta || null }),
     });
     await carregarObjecoes();
-    setNovaObjecao(""); setNovoContexto(""); setMetaFreq(""); setMetaEtapa(""); setMetaContorna(""); setMetaCompra(""); setMetaResposta("");
+    setNovaObjecao(""); setNovoContexto(""); setMetaFreq(""); setMetaEtapa(""); setMetaContorna(""); setMetaCompra(""); setMetaConhecimento(""); setMetaObjetivoCliente(""); setMetaCrencaGerou(""); setMetaResposta("");
     setEtapaCadastro(0);
     setSalvandoObjecao(false);
     setFase("lista");
@@ -382,14 +380,18 @@ export default function ObjecoesPage() {
       { label: "Em qual etapa da venda ela aparece?", tipo: "opcoes", opts: ETAPAS },
       { label: "Você consegue contornar essa objeção?", tipo: "opcoes", opts: CONTORNA },
       { label: "O cliente costuma comprar depois da sua resposta?", tipo: "opcoes", opts: COMPRA_DEPOIS },
-      { label: "Como você responde hoje? (opcional)", tipo: "textareaOpcional" },
+      { label: "O cliente já conhecia o produto quando surgiu essa objeção?", tipo: "opcoes", opts: CONHECIMENTO },
+      { label: "Qual era o objetivo do cliente nessa conversa? (opcional)", tipo: "textareaOpcional", placeholder: "Ex: Queria comprar um celular para o filho, mas estava em dúvida sobre qual modelo escolher..." },
+      { label: "O que você acredita que gerou essa objeção? (opcional)", tipo: "textareaOpcional", placeholder: "Ex: Acho que ele não entendeu a diferença de qualidade entre o nosso produto e os de loja de shopping..." },
+      { label: "Como você responde hoje? (opcional)", tipo: "textareaOpcional", placeholder: "Ex: Falo que a qualidade compensa... (ou deixe em branco)" },
     ];
     const TOTAL = perguntas.length;
     const perguntaAtual = perguntas[etapaCadastro];
-    const valores = ["", "", metaFreq, metaEtapa, metaContorna, metaCompra, metaResposta];
-    const setores: React.Dispatch<React.SetStateAction<string>>[] = [setNovaObjecao, setNovoContexto, setMetaFreq, setMetaEtapa, setMetaContorna, setMetaCompra, setMetaResposta];
+    const valores = ["", "", metaFreq, metaEtapa, metaContorna, metaCompra, metaConhecimento, "", "", ""];
+    const setores: React.Dispatch<React.SetStateAction<string>>[] = [setNovaObjecao, setNovoContexto, setMetaFreq, setMetaEtapa, setMetaContorna, setMetaCompra, setMetaConhecimento, setMetaObjetivoCliente, setMetaCrencaGerou, setMetaResposta];
+    const textareaValues: Record<number, string> = { 7: metaObjetivoCliente, 8: metaCrencaGerou, 9: metaResposta };
     const podeAvancar =
-      etapaCadastro === TOTAL - 1 ? true :
+      perguntaAtual.tipo === "textareaOpcional" ? true :
       etapaCadastro === 0 ? novaObjecao.trim().length > 0 :
       etapaCadastro === 1 ? novoContexto.trim().length > 0 :
       valores[etapaCadastro].length > 0;
@@ -401,7 +403,7 @@ export default function ObjecoesPage() {
 
     return (
       <div className="p-4 md:p-8 max-w-xl mx-auto pb-24 md:pb-8">
-        <button onClick={() => { setFase("lista"); setEtapaCadastro(0); setNovaObjecao(""); setNovoContexto(""); setMetaFreq(""); setMetaEtapa(""); setMetaContorna(""); setMetaCompra(""); setMetaResposta(""); }} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-6 transition-colors">
+        <button onClick={() => { setFase("lista"); setEtapaCadastro(0); setNovaObjecao(""); setNovoContexto(""); setMetaFreq(""); setMetaEtapa(""); setMetaContorna(""); setMetaCompra(""); setMetaConhecimento(""); setMetaObjetivoCliente(""); setMetaCrencaGerou(""); setMetaResposta(""); }} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-6 transition-colors">
           <ArrowLeft size={15} />Voltar
         </button>
 
@@ -412,6 +414,11 @@ export default function ObjecoesPage() {
             ))}
           </div>
           <p className="text-xs text-gray-400 font-medium">Pergunta {etapaCadastro + 1} de {TOTAL}</p>
+        </div>
+
+        <div className="flex items-start gap-2.5 px-3.5 py-2.5 rounded-xl mb-5 text-xs" style={{ background: "rgba(139,116,200,0.08)", border: "1px solid rgba(139,116,200,0.2)", color: "#7c6db0" }}>
+          <Sparkles size={13} className="shrink-0 mt-0.5" style={{ color: "#9b8fd4" }} />
+          <span>Quanto mais detalhes você informar sobre essa situação, mais preciso será o mapa de objeções gerado pela IA.</span>
         </div>
 
         <h2 className="text-lg font-semibold text-gray-900 mb-2">{perguntaAtual.label}</h2>
@@ -461,9 +468,9 @@ export default function ObjecoesPage() {
         {perguntaAtual.tipo === "textareaOpcional" && (
           <textarea
             rows={3}
-            placeholder="Ex: Falo que a qualidade compensa... (ou deixe em branco)"
-            value={metaResposta}
-            onChange={e => setMetaResposta(e.target.value)}
+            placeholder={(perguntaAtual as { placeholder?: string }).placeholder ?? "(opcional)"}
+            value={textareaValues[etapaCadastro] ?? ""}
+            onChange={e => setores[etapaCadastro]?.(e.target.value)}
             className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-400 resize-none"
           />
         )}

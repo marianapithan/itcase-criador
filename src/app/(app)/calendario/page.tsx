@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import {
   ChevronLeft, ChevronRight, Plus, X, Video, Scissors, Clock, CheckCircle,
   Pencil, CalendarX, Trash2, ChevronDown, ChevronUp, Signal,
@@ -12,7 +12,7 @@ import {
 import { ptBR } from "date-fns/locale";
 import {
   FORMATOS_CONFIG, STATUS_CONFIG, STATUS_LIST_EDITORIAL,
-  RESPONSAVEIS, getResponsavelConfig, TRAFEGO_STATUS_LIST,
+  TRAFEGO_STATUS_LIST, MembroEquipe, getMembroConfig,
 } from "@/lib/constants";
 import { useSwipe } from "@/hooks/useSwipe";
 
@@ -39,7 +39,7 @@ type DragState = {
   diaIdx: number; hora: number; minuto: number;
 };
 
-const GRID_START = 10;
+const GRID_START = 8;
 const GRID_END = 22;
 const HOUR_HEIGHT = 60;
 const TIME_COL = 56;
@@ -104,6 +104,9 @@ export default function CalendarioPage() {
   const [novaCampanha, setNovaCampanha] = useState(false);
   const [campForm, setCampForm] = useState({ nome: "", dataInicio: "", dataFim: "", objetivo: "" });
   const [filtroFormato, setFiltroFormato] = useState<string | null>(null);
+  const [membrosEquipe, setMembrosEquipe] = useState<MembroEquipe[]>([]);
+  const [addingMembro, setAddingMembro] = useState(false);
+  const [novoMembroNome, setNovoMembroNome] = useState("");
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -123,20 +126,34 @@ export default function CalendarioPage() {
   const inicioGrid = subDays(inicioMes, getDay(inicioMes));
   const diasMes = eachDayOfInterval({ start: inicioGrid, end: addDays(inicioGrid, 41) });
 
-  const dias = view === "mes" ? diasSemana : view === "hoje" ? diasHoje : diasSemana;
+  const dias = view === "mes" ? diasMes : view === "hoje" ? diasHoje : diasSemana;
 
   useEffect(() => { dragRef.current = drag; }, [drag]);
   useEffect(() => { diasRef.current = dias; }, [dias]);
 
   async function carregar() {
-    const [c, camp, t] = await Promise.all([
+    const [c, camp, t, eq] = await Promise.all([
       fetch("/api/conteudos?comData=true").then((r) => r.json()),
       fetch("/api/campanhas").then((r) => r.json()),
       fetch("/api/temas").then((r) => r.json()),
+      fetch("/api/equipe").then((r) => r.json()),
     ]);
     setConteudos(c);
     setCampanhas(camp);
     setTemas(t);
+    setMembrosEquipe(Array.isArray(eq) ? eq : []);
+  }
+
+  async function adicionarMembro() {
+    const nome = novoMembroNome.trim();
+    if (!nome) return;
+    const res = await fetch("/api/equipe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nome }) });
+    if (res.ok) {
+      const novo = await res.json();
+      setMembrosEquipe((prev) => [...prev, novo]);
+    }
+    setNovoMembroNome("");
+    setAddingMembro(false);
   }
 
   useEffect(() => {
@@ -286,12 +303,20 @@ export default function CalendarioPage() {
     }
   }
 
+  const eventosPorDia = useMemo(() => {
+    const mapa = new Map<string, typeof conteudos>();
+    for (const c of conteudos) {
+      if (!c.dataplanejada) continue;
+      if (filtroFormato && c.formato !== filtroFormato) continue;
+      const chave = c.dataplanejada.slice(0, 10);
+      if (!mapa.has(chave)) mapa.set(chave, []);
+      mapa.get(chave)!.push(c);
+    }
+    return mapa;
+  }, [conteudos, filtroFormato]);
+
   function eventosNaDia(dia: Date) {
-    return conteudos.filter((c) => {
-      if (!c.dataplanejada || !isSameDay(parseISO(c.dataplanejada), dia)) return false;
-      if (filtroFormato && c.formato !== filtroFormato) return false;
-      return true;
-    });
+    return eventosPorDia.get(format(dia, "yyyy-MM-dd")) ?? [];
   }
 
   function campanhasDoPeriodo(inicio: Date, fim: Date) {
@@ -600,7 +625,7 @@ export default function CalendarioPage() {
                     <div className="space-y-0.5">
                       {eventos.slice(0, 3).map((ev) => {
                         const cfg = getCfg(ev.formato);
-                        const resp = getResponsavelConfig(ev.responsavel ?? "");
+                        const resp = getMembroConfig(ev.responsavel ?? "", membrosEquipe);
                         return (
                           <div key={ev.id}
                             className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded cursor-grab active:cursor-grabbing relative overflow-hidden"
@@ -753,7 +778,7 @@ export default function CalendarioPage() {
                         const top = (h - GRID_START) * HOUR_HEIGHT + (m / 60) * HOUR_HEIGHT;
                         const cfg = getCfg(ev.formato);
                         const isDraggingThis = drag?.evento.id === ev.id;
-                        const resp = getResponsavelConfig(ev.responsavel ?? "");
+                        const resp = getMembroConfig(ev.responsavel ?? "", membrosEquipe);
                         return (
                           <div key={ev.id}
                             onPointerDown={(e) => startDrag(e, ev)}
@@ -914,19 +939,36 @@ export default function CalendarioPage() {
 
                 <div>
                   <div className="text-xs text-gray-500 mb-1.5">Responsável</div>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {RESPONSAVEIS.map((r) => {
+                  <div className="flex gap-1.5 flex-wrap items-center">
+                    {membrosEquipe.map((r) => {
                       const ativo = selecionado.responsavel === r.nome;
+                      const inicial = r.nome[0]?.toUpperCase() ?? "?";
                       return (
-                        <button key={r.nome} onClick={() => salvarCampoImediato("responsavel", ativo ? "" : r.nome)}
+                        <button key={r.id} onClick={() => salvarCampoImediato("responsavel", ativo ? "" : r.nome)}
                           className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg border font-medium transition-all"
-                          style={ativo ? { backgroundColor: r.bg, borderColor: r.cor, color: r.cor } : { backgroundColor: "white", borderColor: "#E5E7EB", color: "#6B7280" }}>
-                          <div className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white" style={{ backgroundColor: r.cor }}>{r.inicial}</div>
+                          style={ativo ? { backgroundColor: r.cor + "22", borderColor: r.cor, color: r.cor } : { backgroundColor: "white", borderColor: "#E5E7EB", color: "#6B7280" }}>
+                          <div className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white" style={{ backgroundColor: r.cor }}>{inicial}</div>
                           {r.nome}
                         </button>
                       );
                     })}
+                    {addingMembro ? (
+                      <div className="flex items-center gap-1">
+                        <input autoFocus value={novoMembroNome} onChange={(e) => setNovoMembroNome(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") adicionarMembro(); if (e.key === "Escape") { setAddingMembro(false); setNovoMembroNome(""); } }}
+                          placeholder="Nome" className="text-[11px] border border-gray-300 rounded-lg px-2 py-1 w-24 focus:outline-none focus:border-gray-400" />
+                        <button onClick={adicionarMembro} className="text-[11px] bg-gray-900 text-white px-2 py-1 rounded-lg">OK</button>
+                        <button onClick={() => { setAddingMembro(false); setNovoMembroNome(""); }} className="text-gray-400 text-xs">✕</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setAddingMembro(true)}
+                        className="w-7 h-7 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-gray-500 hover:text-gray-600 transition-colors text-sm font-bold"
+                        title="Adicionar responsável">+</button>
+                    )}
                   </div>
+                  {membrosEquipe.length === 0 && !addingMembro && (
+                    <p className="text-[10px] text-gray-400 mt-1">Clique em + para adicionar membros da equipe</p>
+                  )}
                 </div>
 
                 {/* Roteiro */}

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
+import { garantirMigracoes } from "@/lib/db/migracoes";
 import { chamarIA } from "@/lib/ai/gateway";
 import { CONFIG } from "@/lib/config";
+import { requireAuth } from "@/lib/auth-session";
 
 export const maxDuration = 300;
 export const runtime = "nodejs";
@@ -66,47 +68,6 @@ function splitComma(v: unknown): string[] {
 function parsePipe(v: unknown, keys: string[]): Record<string, string> {
   const raw = typeof v === "string" ? v.split("|").map(s => s.trim()) : [];
   return Object.fromEntries(keys.map((k, i) => [k, raw[i] || ""]));
-}
-
-async function garantirTabela() {
-  try {
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "EstudoEstrategico" (
-        "id" TEXT NOT NULL PRIMARY KEY DEFAULT 'default',
-        "respostas" TEXT NOT NULL DEFAULT '{}',
-        "secEmpresa" TEXT NOT NULL DEFAULT '',
-        "secPersona" TEXT NOT NULL DEFAULT '',
-        "secJornada" TEXT NOT NULL DEFAULT '',
-        "secMercado" TEXT NOT NULL DEFAULT '',
-        "secPosicionamento" TEXT NOT NULL DEFAULT '',
-        "secMapa" TEXT NOT NULL DEFAULT '',
-        "secAnaliseCompleta" TEXT NOT NULL DEFAULT '',
-        "status" TEXT NOT NULL DEFAULT 'novo',
-        "criadoEm" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "atualizadoEm" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-  } catch { /* tabela já existe */ }
-  try {
-    await prisma.$executeRawUnsafe(
-      `ALTER TABLE "EstudoEstrategico" ADD COLUMN "secAnaliseCompleta" TEXT NOT NULL DEFAULT ''`
-    );
-  } catch { /* coluna já existe */ }
-  try {
-    await prisma.$executeRawUnsafe(
-      `ALTER TABLE "EstudoEstrategico" ADD COLUMN "secCriadora" TEXT NOT NULL DEFAULT ''`
-    );
-  } catch { /* coluna já existe */ }
-  try {
-    await prisma.$executeRawUnsafe(
-      `ALTER TABLE "Objecao" ADD COLUMN "contexto" TEXT`
-    );
-  } catch { /* coluna já existe */ }
-  try {
-    await prisma.$executeRawUnsafe(
-      `ALTER TABLE "EstudoEstrategico" ADD COLUMN "secObjetivos" TEXT NOT NULL DEFAULT ''`
-    );
-  } catch { /* coluna já existe */ }
 }
 
 // ── Parsers de seção ──────────────────────────────────────────────────────
@@ -228,7 +189,7 @@ function parsearPosicionamento(obj: Record<string, unknown>): Record<string, unk
 
 // ── Geradores por módulo ──────────────────────────────────────────────────
 
-async function gerarEmpresa(R: Record<string, string>) {
+async function gerarEmpresa(R: Record<string, string>, userId: string) {
   const prompt = `Empresa ${CONFIG.nome} — varejo Apple Londrina.
 Entrevista: produtos="${R.empresa_produtos || ""}" | como vende="${R.empresa_como_vende || ""}" | ticket="${R.empresa_ticket || ""}" | diferenciais="${R.empresa_diferenciais || ""}" | posicionamento="${R.empresa_posicionamento || ""}" | valores="${R.empresa_valores || ""}"
 
@@ -243,14 +204,14 @@ Retorne SOMENTE este JSON (arrays como texto separado por vírgula):
 
   const secEmpresa = JSON.stringify(parsearEmpresa(raw));
   await prisma.estudoEstrategico.upsert({
-    where: { id: "default" },
+    where: { id: userId },
     update: { secEmpresa, respostas: JSON.stringify(R) },
-    create: { id: "default", secEmpresa, respostas: JSON.stringify(R) },
+    create: { id: userId, secEmpresa, respostas: JSON.stringify(R) },
   });
   return NextResponse.json({ ok: true, secEmpresa });
 }
 
-async function gerarPersona(R: Record<string, string>) {
+async function gerarPersona(R: Record<string, string>, userId: string) {
   const prompt = `Empresa ${CONFIG.nome} — varejo Apple Londrina.
 Entrevista: perfil="${R.persona_perfil || ""}" | rotina="${R.persona_rotina || ""}" | objetivos="${R.persona_objetivos || ""}" | confiança="${R.persona_confianca || ""}" | linguagem="${R.persona_linguagem || ""}" | influência="${R.persona_influencia || ""}"
 
@@ -265,14 +226,14 @@ Retorne SOMENTE este JSON (arrays como texto separado por vírgula):
 
   const secPersona = JSON.stringify(parsearPersona(raw));
   await prisma.estudoEstrategico.upsert({
-    where: { id: "default" },
+    where: { id: userId },
     update: { secPersona, respostas: JSON.stringify(R) },
-    create: { id: "default", secPersona, respostas: JSON.stringify(R) },
+    create: { id: userId, secPersona, respostas: JSON.stringify(R) },
   });
   return NextResponse.json({ ok: true, secPersona });
 }
 
-async function gerarJornada(R: Record<string, string>) {
+async function gerarJornada(R: Record<string, string>, userId: string) {
   const prompt = `Empresa ${CONFIG.nome}. Entrevista: percebe="${R.jornada_percebe || ""}" | trava="${R.jornada_trava || ""}" | emoções="${R.jornada_emocoes || ""}"
 
 Retorne SOMENTE este JSON. Cada etapa_N: "descricao|emocao|acao":
@@ -286,14 +247,14 @@ Retorne SOMENTE este JSON. Cada etapa_N: "descricao|emocao|acao":
 
   const secJornada = JSON.stringify(parsearJornada(raw));
   await prisma.estudoEstrategico.upsert({
-    where: { id: "default" },
+    where: { id: userId },
     update: { secJornada, respostas: JSON.stringify(R) },
-    create: { id: "default", secJornada, respostas: JSON.stringify(R) },
+    create: { id: userId, secJornada, respostas: JSON.stringify(R) },
   });
   return NextResponse.json({ ok: true, secJornada });
 }
 
-async function gerarMercado(R: Record<string, string>) {
+async function gerarMercado(R: Record<string, string>, userId: string) {
   const prompt = `Empresa ${CONFIG.nome}. Entrevista: concorrentes="${R.mercado_concorrentes || ""}" | oportunidades="${R.mercado_oportunidades || ""}" | tendências="${R.mercado_tendencias || ""}"
 
 Retorne SOMENTE este JSON. Cada concorrente_N: "nome|como_comunica|promessa|fraqueza":
@@ -307,14 +268,14 @@ Retorne SOMENTE este JSON. Cada concorrente_N: "nome|como_comunica|promessa|fraq
 
   const secMercado = JSON.stringify(parsearMercado(raw));
   await prisma.estudoEstrategico.upsert({
-    where: { id: "default" },
+    where: { id: userId },
     update: { secMercado, respostas: JSON.stringify(R) },
-    create: { id: "default", secMercado, respostas: JSON.stringify(R) },
+    create: { id: userId, secMercado, respostas: JSON.stringify(R) },
   });
   return NextResponse.json({ ok: true, secMercado });
 }
 
-async function gerarPosicionamento(R: Record<string, string>) {
+async function gerarPosicionamento(R: Record<string, string>, userId: string) {
   const prompt = `Empresa ${CONFIG.nome}. Entrevista: personalidade="${R.pos_personalidade || ""}" | big_idea="${R.pos_big_idea || ""}" | crenças="${R.pos_crencas || ""}"
 
 Retorne SOMENTE este JSON (arrays como texto separado por vírgula):
@@ -328,14 +289,14 @@ Retorne SOMENTE este JSON (arrays como texto separado por vírgula):
 
   const secPosicionamento = JSON.stringify(parsearPosicionamento(raw));
   await prisma.estudoEstrategico.upsert({
-    where: { id: "default" },
+    where: { id: userId },
     update: { secPosicionamento, respostas: JSON.stringify(R) },
-    create: { id: "default", secPosicionamento, respostas: JSON.stringify(R) },
+    create: { id: userId, secPosicionamento, respostas: JSON.stringify(R) },
   });
   return NextResponse.json({ ok: true, secPosicionamento });
 }
 
-async function gerarObjetivos(R: Record<string, string>) {
+async function gerarObjetivos(R: Record<string, string>, userId: string) {
   const prompt = `Criadora de conteúdo — ${CONFIG.nome}.
 Objetivos selecionados para o perfil: "${R.objetivos_selecionados || ""}"
 Outros objetivos informados: "${R.objetivos_outros || ""}"
@@ -351,14 +312,14 @@ Retorne SOMENTE este JSON (arrays como texto separado por vírgula):
 
   const secObjetivos = JSON.stringify(parsearObjetivos(raw));
   await prisma.estudoEstrategico.upsert({
-    where: { id: "default" },
+    where: { id: userId },
     update: { secObjetivos, respostas: JSON.stringify(R) },
-    create: { id: "default", secObjetivos, respostas: JSON.stringify(R) },
+    create: { id: userId, secObjetivos, respostas: JSON.stringify(R) },
   });
   return NextResponse.json({ ok: true, secObjetivos });
 }
 
-async function gerarCriadora(R: Record<string, string>) {
+async function gerarCriadora(R: Record<string, string>, userId: string) {
   const prompt = `Criadora de conteúdo — ${CONFIG.nome}.
 Entrevista: abertura="${R.criadora_abertura || ""}" | frases="${R.criadora_frases || ""}" | transicoes="${R.criadora_transicoes || ""}" | formatos="${R.criadora_formatos || ""}" | ganchos="${R.criadora_ganchos || ""}" | visual="${R.criadora_visual || ""}"
 
@@ -373,15 +334,37 @@ Retorne SOMENTE este JSON (arrays como texto separado por vírgula):
 
   const secCriadora = JSON.stringify(parsearCriadora(raw));
   await prisma.estudoEstrategico.upsert({
-    where: { id: "default" },
+    where: { id: userId },
     update: { secCriadora, respostas: JSON.stringify(R) },
-    create: { id: "default", secCriadora, respostas: JSON.stringify(R) },
+    create: { id: userId, secCriadora, respostas: JSON.stringify(R) },
   });
   return NextResponse.json({ ok: true, secCriadora });
 }
 
-async function gerarMapa() {
-  const estudo = await prisma.estudoEstrategico.findUnique({ where: { id: "default" } });
+async function gerarComunicacao(R: Record<string, string>, userId: string) {
+  const prompt = `Criadora de conteúdo.
+Entrevista: ritmo="${R.com_ritmo || ""}" | tipo_gravacao="${R.com_tipo_gravacao || ""}" | cta="${R.com_cta || ""}" | bordao="${R.com_bordao || ""}" | evita="${R.com_evita || ""}" | humor="${R.com_humor || ""}" | vicios="${R.com_vicios || ""}"
+
+Retorne SOMENTE este JSON (strings concisas):
+{"ritmo":"ritmo e estilo de comunicação em 1 frase","tipo_gravacao":"formatos de gravação usados, separados por vírgula","cta_recorrente":"a CTA que ela mais usa","bordao":"expressão ou bordão de assinatura","evita":"o que nunca diz ou faz","humor":"estilo de humor dela","vicios":"vícios de linguagem"}`;
+
+  const r = await chamarIA({ funcionalidade: "estrategia-comunicacao", sistema: SISTEMA, prompt, maxTokens: 500 });
+  if (!r.sucesso) return NextResponse.json({ erro: `IA comunicação: ${r.erro}` }, { status: 500 });
+
+  const raw = extrairJSON(r.conteudo);
+  if (!raw) return NextResponse.json({ erro: "JSON comunicação inválido. Tente novamente." }, { status: 500 });
+
+  const secComunicacao = JSON.stringify(raw);
+  await prisma.estudoEstrategico.upsert({
+    where: { id: userId },
+    update: { secComunicacao, respostas: JSON.stringify(R) } as Record<string, unknown>,
+    create: { id: userId, secComunicacao, respostas: JSON.stringify(R) } as Record<string, unknown>,
+  });
+  return NextResponse.json({ ok: true, secComunicacao });
+}
+
+async function gerarMapa(userId: string) {
+  const estudo = await prisma.estudoEstrategico.findUnique({ where: { id: userId } });
   let personaNome = "cliente ideal";
   let personaPerfil = "";
   try {
@@ -403,15 +386,15 @@ Retorne SOMENTE este JSON (arrays de strings, 6 itens cada, máx 12 palavras por
 
   const secMapa = JSON.stringify(mapa);
   await prisma.estudoEstrategico.upsert({
-    where: { id: "default" },
+    where: { id: userId },
     update: { secMapa },
-    create: { id: "default", secMapa },
+    create: { id: userId, secMapa },
   });
   return NextResponse.json({ ok: true, secMapa });
 }
 
-async function gerarCompleto() {
-  const estudo = await prisma.estudoEstrategico.findUnique({ where: { id: "default" } });
+async function gerarCompleto(userId: string) {
+  const estudo = await prisma.estudoEstrategico.findUnique({ where: { id: userId } });
   if (!estudo) return NextResponse.json({ erro: "Nenhum módulo gerado ainda." }, { status: 400 });
 
   const empresa    = estudo.secEmpresa        ? JSON.parse(estudo.secEmpresa)        as Record<string, unknown> : null;
@@ -463,9 +446,9 @@ DADOS: ${contexto}
 
   const secAnaliseCompleta = JSON.stringify(analise);
   await prisma.estudoEstrategico.upsert({
-    where: { id: "default" },
+    where: { id: userId },
     update: { secAnaliseCompleta },
-    create: { id: "default", secAnaliseCompleta },
+    create: { id: userId, secAnaliseCompleta },
   });
   return NextResponse.json({ ok: true, secAnaliseCompleta });
 }
@@ -473,21 +456,26 @@ DADOS: ${contexto}
 // ── Handler ───────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  const sessao = await requireAuth(req);
+  if (!sessao) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  const { userId } = sessao;
+
   const body = await req.json();
   const modulo = body.modulo as string;
   const R = (body.respostas ?? {}) as Record<string, string>;
 
-  await garantirTabela();
+  await garantirMigracoes();
 
-  if (modulo === "empresa")        return gerarEmpresa(R);
-  if (modulo === "persona")        return gerarPersona(R);
-  if (modulo === "jornada")        return gerarJornada(R);
-  if (modulo === "mercado")        return gerarMercado(R);
-  if (modulo === "posicionamento") return gerarPosicionamento(R);
-  if (modulo === "criadora")       return gerarCriadora(R);
-  if (modulo === "objetivos")      return gerarObjetivos(R);
-  if (modulo === "mapa")           return gerarMapa();
-  if (modulo === "completo")       return gerarCompleto();
+  if (modulo === "empresa")        return gerarEmpresa(R, userId);
+  if (modulo === "persona")        return gerarPersona(R, userId);
+  if (modulo === "jornada")        return gerarJornada(R, userId);
+  if (modulo === "mercado")        return gerarMercado(R, userId);
+  if (modulo === "posicionamento") return gerarPosicionamento(R, userId);
+  if (modulo === "criadora")       return gerarCriadora(R, userId);
+  if (modulo === "comunicacao")    return gerarComunicacao(R, userId);
+  if (modulo === "objetivos")      return gerarObjetivos(R, userId);
+  if (modulo === "mapa")           return gerarMapa(userId);
+  if (modulo === "completo")       return gerarCompleto(userId);
 
   return NextResponse.json({ erro: "Módulo inválido" }, { status: 400 });
 }

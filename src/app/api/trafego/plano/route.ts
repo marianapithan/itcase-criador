@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { chamarIA, contextoCerebro } from "@/lib/ai/gateway";
+import { requireAuth } from "@/lib/auth-session";
 
 export const maxDuration = 60;
 export const runtime = "nodejs";
@@ -131,12 +132,16 @@ function gerarChecklist(plataforma: string, objetivo: string): { id: string; lab
 }
 
 export async function POST(req: NextRequest) {
+  const sessao = await requireAuth(req);
+  if (!sessao) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  const { userId } = sessao;
+
   const { conteudoId, investimento, ticket, dias: diasRaw, plataforma, objetivo, copiaTexto, copiaAngulo } = await req.json();
   const dias = Math.max(1, Number(diasRaw) || 30);
 
   const [conteudo, persona] = await Promise.all([
-    prisma.conteudo.findUnique({ where: { id: conteudoId }, include: { tema: { select: { titulo: true } } } }),
-    prisma.personaConfig.findUnique({ where: { id: "default" } }),
+    prisma.conteudo.findFirst({ where: { id: conteudoId, userId }, include: { tema: { select: { titulo: true } } } }),
+    prisma.personaConfig.findUnique({ where: { id: userId } }),
   ]);
   if (!conteudo) return NextResponse.json({ erro: "Conteúdo não encontrado" }, { status: 404 });
 
@@ -176,7 +181,7 @@ export async function POST(req: NextRequest) {
     `{"personaRapida":"<1 frase por que esta copy funciona para ${nomePersona}>","publicoAlvo":{"segmentacao":"<local+idade+genero>","interesses":["<int1>","<int2>","<int3>"],"exclusoes":"<quem excluir>"},"nomenclatura":{"campanha":"<PRODUTO-OBJ-LOCAL-${mesAno}>","conjunto":"<PRODUTO-OBJ-PUB25A45-${mesAno}>","anuncio":"<PRODUTO-OBJ-PUB25A45-VID01>"},"saudeIA":"<1 frase diagnostico R$${verbaDia}/dia por ${dias} dias>"}`,
   ].join("\n");
 
-  const resultado = await chamarIA({ funcionalidade: "trafego-plano", sistema: contextoCerebro(), prompt, maxTokens: 800 });
+  const resultado = await chamarIA({ funcionalidade: "trafego-plano", sistema: await contextoCerebro(userId), prompt, maxTokens: 800 });
   if (!resultado.sucesso) return NextResponse.json({ erro: resultado.erro }, { status: 400 });
 
   const texto = resultado.conteudo.replace(/```json\n?/gi, "").replace(/```\n?/g, "").trim();

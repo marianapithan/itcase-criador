@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { chamarIA, contextoCerebro } from "@/lib/ai/gateway";
+import { requireAuth } from "@/lib/auth-session";
 
-export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const sessao = await requireAuth(req);
+  if (!sessao) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  const { userId } = sessao;
+
   const { id } = await params;
-  const tema = await prisma.tema.findUnique({ where: { id } });
+  const tema = await prisma.tema.findFirst({ where: { id, userId } });
   if (!tema) return NextResponse.json({ erro: "Tema não encontrado" }, { status: 404 });
 
   const resultado = await chamarIA({
     funcionalidade: "gerar-microtemas",
-    sistema: contextoCerebro(),
+    sistema: await contextoCerebro(userId),
     prompt: `Para o tema "${tema.titulo}" (${tema.descricao ?? ""}), crie 4 microtemas específicos de conteúdo para redes sociais da It Case.
 
 Retorne APENAS um JSON válido (sem markdown):

@@ -40,12 +40,12 @@ export default function FrameworksPage() {
 
         {/* Header */}
         <div className="mb-8">
-          <p className="section-label mb-1">Configuracoes</p>
+          <p className="section-label mb-1">Configurações</p>
           <h1 className="text-2xl md:text-3xl font-bold" style={{ color: "var(--foreground)", fontFamily: "var(--font-syne, inherit)" }}>
             Biblioteca de Frameworks
           </h1>
           <p className="text-sm mt-1 max-w-xl" style={{ color: "var(--muted)" }}>
-            Selecione o framework de copywriting ativo. Ele sera aplicado em todas as geracoes de conteudo do sistema: roteiros, legendas, anuncios, e-mails, calendarios e qualquer outro modulo que utilize IA.
+            Selecione o framework de copywriting ativo. Ele será aplicado em todas as gerações de conteúdo do sistema: roteiros, legendas, anúncios, e-mails, calendários e qualquer outro módulo que utilize IA.
           </p>
         </div>
 

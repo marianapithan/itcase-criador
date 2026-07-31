@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { chamarIA, contextoCerebro } from "@/lib/ai/gateway";
 import { obterFrameworkAtivo } from "@/lib/ai/framework";
+import { requireAuth } from "@/lib/auth-session";
 
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
+  const sessao = await requireAuth(req);
+  if (!sessao) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  const { userId } = sessao;
+
   const { prompt, quantidade = 7, temaId } = await req.json();
 
   let contextoTema = "";
@@ -16,13 +21,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const frameworkPrompt = await obterFrameworkAtivo();
-  const sistema = `${contextoCerebro()}\n\n--- FRAMEWORK DE COPYWRITING ATIVO ---\n${frameworkPrompt}`;
+  const frameworkPrompt = await obterFrameworkAtivo(userId);
+  const ctx = await contextoCerebro(userId);
+  const sistema = `${ctx}\n\n--- FRAMEWORK DE COPYWRITING ATIVO ---\n${frameworkPrompt}`;
 
   const resultado = await chamarIA({
     funcionalidade: "gerar-lote-ideias",
     sistema,
-    prompt: `Gere ${quantidade} ideias de conteúdo diferentes para a It Case.
+    prompt: `Gere ${quantidade} ideias de conteúdo diferentes.
 
 Contexto: ${prompt}
 ${contextoTema}
@@ -75,6 +81,7 @@ Etapas válidas: TOPO, MEIO, FUNDO.`,
     ideias.map((ideia) =>
       prisma.conteudo.create({
         data: {
+          userId,
           titulo: ideia.titulo,
           formato: FORMATOS_VALIDOS.includes(ideia.formato) ? ideia.formato : "REELS",
           objetivo: ideia.objetivo || null,

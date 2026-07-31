@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeFileSync, readFileSync, existsSync } from "fs";
 import { join } from "path";
+import { requireAuth } from "@/lib/auth-session";
 
 const ENV_PATH = join(process.cwd(), ".env.local");
 
@@ -11,6 +12,9 @@ const VAR_MAP: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ provedor: string }> }) {
+  const sessao = await requireAuth(req);
+  if (!sessao) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+
   const { provedor } = await params;
   const { chave } = await req.json();
 

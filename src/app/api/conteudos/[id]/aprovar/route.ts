@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
+import { requireAuth } from "@/lib/auth-session";
 
 async function proximoDiaLivre(horaDefault = 9): Promise<Date> {
   const hoje = new Date();
@@ -28,8 +29,15 @@ async function proximoDiaLivre(horaDefault = 9): Promise<Date> {
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const sessao = await requireAuth(req);
+  if (!sessao) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  const { userId } = sessao;
+
   const { id } = await params;
   const { adicionarCalendario } = await req.json();
+
+  const existe = await prisma.conteudo.findFirst({ where: { id, userId } });
+  if (!existe) return new NextResponse(null, { status: 404 });
 
   let dataplanejada: Date | undefined;
   if (adicionarCalendario) {

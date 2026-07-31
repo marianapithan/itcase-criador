@@ -14,10 +14,10 @@ async function garantirTabelaFramework() {
   } catch { /* tabela já existe */ }
 }
 
-export async function obterFrameworkAtivo(): Promise<string> {
+export async function obterFrameworkAtivo(userId = "admin-default"): Promise<string> {
   await garantirTabelaFramework();
   try {
-    const config = await prisma.configFramework.findUnique({ where: { id: "default" } });
+    const config = await prisma.configFramework.findUnique({ where: { id: userId } });
     const id = (config?.ativo ?? "AIDA") as FrameworkId;
     const fw = FRAMEWORKS[id] ?? FRAMEWORKS["AIDA"];
     return fw.promptMestre;
@@ -26,10 +26,10 @@ export async function obterFrameworkAtivo(): Promise<string> {
   }
 }
 
-export async function obterFrameworkAtivoId(): Promise<FrameworkId> {
+export async function obterFrameworkAtivoId(userId = "admin-default"): Promise<FrameworkId> {
   await garantirTabelaFramework();
   try {
-    const config = await prisma.configFramework.findUnique({ where: { id: "default" } });
+    const config = await prisma.configFramework.findUnique({ where: { id: userId } });
     return (config?.ativo ?? "AIDA") as FrameworkId;
   } catch {
     return "AIDA";

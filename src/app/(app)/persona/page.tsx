@@ -10,7 +10,7 @@ import {
 // ── Tipos ────────────────────────────────────────────────────────────────
 
 type Respostas = Record<string, string>;
-type ModuloId = "empresa" | "persona" | "jornada" | "mercado" | "posicionamento" | "criadora" | "objetivos" | "mapa";
+type ModuloId = "empresa" | "persona" | "jornada" | "mercado" | "posicionamento" | "criadora" | "comunicacao" | "objetivos" | "mapa";
 type StatusModulo = "vazio" | "preenchendo" | "gerado";
 type View = "overview" | "form" | "resultado" | "gerando" | "analise-completa" | "gerando-completo";
 type Pergunta = { campo: string; pergunta: string; exemplo: string; tipo?: "multiselect"; opcoes?: string[] };
@@ -123,6 +123,20 @@ const MODULOS: Modulo[] = [
     ],
   },
   {
+    id: "comunicacao", titulo: "Estilo de Comunicação", cor: "#6ee7b7",
+    descCard: "Como você fala: ritmo, bordões, CTAs recorrentes, vícios de linguagem e formato preferido de gravação.",
+    icon: MessageSquare, secKey: "secComunicacao",
+    perguntas: [
+      { campo: "com_ritmo", pergunta: "Qual é o seu ritmo de comunicação? Como você definiria o seu jeito de falar?", exemplo: "Ex: Mais acelerado e descontraído, uso muito humor e ironia. Às vezes fico mais consultivo quando explico algo técnico. Nunca sou muito formal." },
+      { campo: "com_tipo_gravacao", pergunta: "Como você costuma gravar seus vídeos?", exemplo: "Ex: Principalmente falando direto para a câmera. Também faço vlogs de bastidores e vídeos narrados com imagens do produto. Raramente faço entrevistas.", tipo: "multiselect", opcoes: ["Falando para a câmera", "Vídeos narrados (voice over)", "Entrevistas", "Vlogs / bastidores", "Caixinha de perguntas", "Storytelling", "Tutoriais / passo a passo", "Comparativos"] },
+      { campo: "com_cta", pergunta: "Qual é a sua CTA recorrente? Como você costuma encerrar seus vídeos ou posts?", exemplo: "Ex: 'Me manda mensagem', 'Comenta aqui embaixo', 'Salva esse vídeo', 'Me segue pra mais conteúdo assim'. Termino sempre pedindo alguma interação ou visita à loja." },
+      { campo: "com_bordao", pergunta: "Existe alguma frase, bordão ou expressão que você usa com frequência e que as pessoas já associam à você?", exemplo: "Ex: 'Isso é mais do que parece', 'Pera que eu te explico', 'Confia em mim que vale'. Não tenho um bordão fixo, mas costumo usar 'na prática' muito." },
+      { campo: "com_evita", pergunta: "Existe alguma palavra, expressão ou estilo de comunicação que você NUNCA usaria?", exemplo: "Ex: Nunca falo 'aproveite', 'última chance', 'corre'. Não uso jargão técnico. Odeio tom de vendedor forçado ou enérgico demais." },
+      { campo: "com_humor", pergunta: "Você usa humor no seu conteúdo? Se sim, que tipo de humor é o seu?", exemplo: "Ex: Sim, uso bastante ironia leve e auto-ironia. Às vezes faço referências pop. Nunca faço humor que possa ofender alguém." },
+      { campo: "com_vicios", pergunta: "Você tem algum vício de linguagem? Palavras ou sons que repete muito sem perceber?", exemplo: "Ex: Falo 'né?' o tempo todo. Começo muitas frases com 'Então…'. Às vezes dou muitas risadinhas nervosas quando fico empolgada." },
+    ],
+  },
+  {
     id: "mapa", titulo: "Mapa de Comunicação", cor: "#c8d92a",
     descCard: "Gerado automaticamente: 60+ insights com dores, desejos, objeções, gatilhos e temas.",
     icon: BookOpen, secKey: "secMapa",
@@ -153,6 +167,7 @@ function statusModulo(id: ModuloId, estudo: Record<string, string>, respostas: R
     mercado: ["mercado_"],
     posicionamento: ["pos_"],
     criadora: ["criadora_"],
+    comunicacao: ["com_"],
     objetivos: ["objetivos_"],
     mapa: [],
   };

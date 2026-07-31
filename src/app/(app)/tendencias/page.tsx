@@ -54,6 +54,7 @@ function getGrauCfg(v: string) { return GRAU_CONFIG[v as keyof typeof GRAU_CONFI
 export default function TendenciasPage() {
   const [tendencias, setTendencias] = useState<Tendencia[]>([]);
   const [pesquisando, setPesquisando] = useState(false);
+  const [nicho, setNicho] = useState("");
   const [convertendo, setConvertendo] = useState<string | null>(null);
   const [filtroPlat, setFiltroPlat] = useState("");
   const [filtroCat, setFiltroCat] = useState("");
@@ -88,7 +89,7 @@ export default function TendenciasPage() {
       const res = await fetch("/api/tendencias/pesquisar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ nicho: nicho.trim() }),
       });
       const data = await res.json();
       if (data.erro) { setFeedback(`Erro: ${data.erro}`); return; }
@@ -207,6 +208,12 @@ export default function TendenciasPage() {
                 <TrendingUp size={12} /> {feedback}
               </div>
             )}
+            <input
+              value={nicho}
+              onChange={(e) => setNicho(e.target.value)}
+              placeholder="Nicho extra (opcional)"
+              className="hidden sm:block text-xs border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-purple-400 w-44"
+            />
             <button onClick={pesquisar} disabled={pesquisando}
               className="flex items-center gap-1.5 text-xs bg-purple-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors font-medium">
               <RefreshCw size={12} className={pesquisando ? "animate-spin" : ""} />
@@ -218,17 +225,17 @@ export default function TendenciasPage() {
 
         {/* Stats row */}
         <div className="flex items-center gap-3 md:gap-4 px-4 md:px-5 py-2 border-b border-gray-100 bg-gray-50 shrink-0 text-xs overflow-x-auto">
-          <button onClick={() => setFiltroStatus("NOVA")}
+          <button onClick={() => { setFiltroGrau(""); setFiltroStatus("NOVA"); }}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-full transition-all ${filtroStatus === "NOVA" ? "bg-purple-600 text-white" : "text-gray-500 hover:bg-gray-200"}`}>
             <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />Novas
             <span className={`font-bold ${filtroStatus === "NOVA" ? "text-purple-200" : "text-gray-400"}`}>{contagem.novas}</span>
           </button>
-          <button onClick={() => setFiltroStatus("SALVA")}
+          <button onClick={() => { setFiltroGrau(""); setFiltroStatus("SALVA"); }}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-full transition-all ${filtroStatus === "SALVA" ? "bg-amber-500 text-white" : "text-gray-500 hover:bg-gray-200"}`}>
             <Bookmark size={11} /> Salvas
             <span className={`font-bold ${filtroStatus === "SALVA" ? "text-amber-200" : "text-gray-400"}`}>{contagem.salvas}</span>
           </button>
-          <button onClick={() => setFiltroStatus("")}
+          <button onClick={() => { setFiltroGrau(""); setFiltroStatus(""); }}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-full transition-all ${filtroStatus === "" ? "bg-gray-700 text-white" : "text-gray-500 hover:bg-gray-200"}`}>
             Todas
             <span className={`font-bold ${filtroStatus === "" ? "text-gray-300" : "text-gray-400"}`}>{contagem.total}</span>

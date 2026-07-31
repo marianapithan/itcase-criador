@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { chamarIA } from "@/lib/ai/gateway";
+import { requireAuth } from "@/lib/auth-session";
 
 export const maxDuration = 60;
 export const runtime = "nodejs";
@@ -146,10 +147,14 @@ function construirPrompt(
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const sessao = await requireAuth(req);
+  if (!sessao) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  const { userId } = sessao;
+
   const { id } = await params;
   const { formato }: { formato: string } = await req.json();
 
-  const objecao = await prisma.objecao.findUnique({ where: { id } });
+  const objecao = await prisma.objecao.findFirst({ where: { id, userId } });
   if (!objecao) return NextResponse.json({ erro: "Objeção não encontrada" }, { status: 404 });
 
   const raiz = objecao.raiz || "cliente indeciso ou com duvida nao revelada";

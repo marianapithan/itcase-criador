@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { chamarIA, contextoCerebro } from "@/lib/ai/gateway";
+import { requireAuth } from "@/lib/auth-session";
 
 async function garantirColuna() {
   try {
@@ -8,14 +9,18 @@ async function garantirColuna() {
   } catch { /* coluna já existe */ }
 }
 
-export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const sessao = await requireAuth(req);
+  if (!sessao) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  const { userId } = sessao;
+
   const { id } = await params;
   await garantirColuna();
 
-  const conteudo = await prisma.conteudo.findUnique({ where: { id } });
+  const conteudo = await prisma.conteudo.findFirst({ where: { id, userId } });
   if (!conteudo) return new NextResponse(null, { status: 404 });
 
-  const cerebro = await contextoCerebro();
+  const cerebro = await contextoCerebro(userId);
   const prompt = `Gere entre 15 e 20 hashtags relevantes para o seguinte conteúdo de Instagram.
 
 Contexto do negócio: ${cerebro}

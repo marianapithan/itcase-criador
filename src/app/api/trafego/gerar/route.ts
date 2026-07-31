@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { chamarIA, contextoCerebro } from "@/lib/ai/gateway";
+import { requireAuth } from "@/lib/auth-session";
 
 export const maxDuration = 60;
 export const runtime = "nodejs";
@@ -46,15 +47,19 @@ function gerarBriefing(formato: string, titulo: string, gancho: string): string 
 }
 
 export async function POST(req: NextRequest) {
+  const sessao = await requireAuth(req);
+  if (!sessao) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  const { userId } = sessao;
+
   const { conteudoId, investimento, ticket, dias: diasRaw } = await req.json();
   const dias = Math.max(1, Number(diasRaw) || 30);
 
   const [conteudo, persona] = await Promise.all([
-    prisma.conteudo.findUnique({
-      where: { id: conteudoId },
+    prisma.conteudo.findFirst({
+      where: { id: conteudoId, userId },
       include: { tema: { select: { titulo: true } } },
     }),
-    prisma.personaConfig.findUnique({ where: { id: "default" } }),
+    prisma.personaConfig.findUnique({ where: { id: userId } }),
   ]);
   if (!conteudo) return NextResponse.json({ erro: "Conteúdo não encontrado" }, { status: 404 });
 
@@ -115,7 +120,7 @@ VERBA: R$${verbaDia}/dia (${dias} dias). Ticket R$${ticket}. CPAs: escala R$${es
 
   const resultado = await chamarIA({
     funcionalidade: "trafego-gerar-campanha",
-    sistema: contextoCerebro(),
+    sistema: await contextoCerebro(userId),
     prompt,
     maxTokens: 1200,
   });

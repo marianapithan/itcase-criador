@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, Signal, CheckSquare, Square, CalendarPlus, X, Lightbulb, BookOpen } from "lucide-react";
+import { Search, Signal, CheckSquare, Square, CalendarPlus, X, Lightbulb, BookOpen, Copy } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { STATUS_CONFIG, STATUS_LIST_EDITORIAL, FORMATOS_CONFIG, RESPONSAVEIS, getResponsavelConfig } from "@/lib/constants";
+import { STATUS_CONFIG, STATUS_LIST_EDITORIAL, FORMATOS_CONFIG, MembroEquipe, getMembroConfig } from "@/lib/constants";
 import { StatusBadge } from "@/components/StatusBadge";
 
 type Conteudo = {
@@ -48,10 +48,36 @@ export default function BibliotecaPage() {
   const [operandoLote, setOperandoLote] = useState(false);
   const [agendando, setAgendando] = useState<AgendarState | null>(null);
   const [salvandoData, setSalvandoData] = useState(false);
+  const [duplicando, setDuplicando] = useState<string | null>(null);
+  const [membrosEquipe, setMembrosEquipe] = useState<MembroEquipe[]>([]);
 
   async function carregar() {
-    const data = await fetch("/api/conteudos?incluirTema=true").then((r) => r.json());
+    const [data, eq] = await Promise.all([
+      fetch("/api/conteudos?incluirTema=true").then((r) => r.json()),
+      fetch("/api/equipe").then((r) => r.json()),
+    ]);
     setConteudos(data);
+    setMembrosEquipe(Array.isArray(eq) ? eq : []);
+  }
+
+  async function duplicar(c: Conteudo) {
+    if (duplicando) return;
+    setDuplicando(c.id);
+    try {
+      await fetch("/api/conteudos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          titulo: `${c.titulo} (cópia)`,
+          formato: c.formato,
+          status: "IDEIA",
+          temaId: undefined,
+        }),
+      });
+      await carregar();
+    } finally {
+      setDuplicando(null);
+    }
   }
 
   useEffect(() => { carregar(); }, []);
@@ -204,7 +230,7 @@ export default function BibliotecaPage() {
         <select value={filtroResponsavel} onChange={(e) => setFiltroResponsavel(e.target.value)}
           className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none bg-white text-gray-600">
           <option value="">Responsável</option>
-          {RESPONSAVEIS.map((r) => <option key={r.nome} value={r.nome}>{r.nome}</option>)}
+          {membrosEquipe.map((r) => <option key={r.id} value={r.nome}>{r.nome}</option>)}
         </select>
       </div>
 
@@ -307,7 +333,7 @@ export default function BibliotecaPage() {
             {filtrados.map((c) => {
               const status = STATUS_CONFIG[c.status] ?? { label: c.status, cor: "bg-gray-100 text-gray-600", dot: "#9CA3AF" };
               const fmt = FORMATOS_CONFIG[c.formato] ?? { label: c.formato, bg: "#F3F4F6", text: "#374151", dot: "#9CA3AF" };
-              const resp = getResponsavelConfig(c.responsavel ?? "");
+              const resp = getMembroConfig(c.responsavel ?? "", membrosEquipe);
               const producaoStep = c.concluido ? "Concluída" : c.agendadoRede ? "Agendada" : c.editado ? "Editado" : c.gravado ? "Gravado" : "—";
               const producaoCor = c.concluido ? "text-emerald-600" : c.agendadoRede ? "text-purple-600" : c.editado ? "text-blue-600" : c.gravado ? "text-amber-600" : "text-gray-300";
               const rodandoCor = c.trafegoStatus === "EM_VEICULACAO" ? "text-orange-500" : "text-gray-300";
@@ -322,9 +348,20 @@ export default function BibliotecaPage() {
                       {sel ? <CheckSquare size={14} className="text-blue-500" /> : <Square size={14} />}
                     </button>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900 line-clamp-2">{c.titulo}</div>
-                    {c.tema && <div className="text-gray-400 mt-0.5 text-[10px]">{c.tema.titulo}</div>}
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-start gap-2 group/title">
+                      <div className="flex-1 cursor-pointer" onClick={() => toggleSelecionado(c.id)}>
+                        <div className="font-medium text-gray-900 line-clamp-2">{c.titulo}</div>
+                        {c.tema && <div className="text-gray-400 mt-0.5 text-[10px]">{c.tema.titulo}</div>}
+                      </div>
+                      <button
+                        onClick={() => duplicar(c)}
+                        disabled={duplicando === c.id}
+                        className="opacity-0 group-hover/title:opacity-100 transition-opacity shrink-0 p-1 rounded text-gray-300 hover:text-gray-600 hover:bg-gray-100 mt-0.5"
+                        title="Duplicar conteúdo">
+                        <Copy size={12} />
+                      </button>
+                    </div>
                   </td>
                   <td className="px-3 py-3">
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"

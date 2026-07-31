@@ -7,6 +7,35 @@ datasource db {
   provider = "sqlite"
 }
 
+// ── Usuários da plataforma (multi-tenant) ─────────────────────────────────────
+model User {
+  id           String   @id @default(cuid())
+  nome         String
+  email        String   @unique
+  senhaHash    String
+  role         String   @default("user")
+  onboardingConcluido Boolean @default(false)
+  perfilTipo   String?
+  segmento     String?
+  faseDigital  String?
+  nomeEmpresa      String?
+  instagramHandle  String?
+  tiktokHandle     String?
+  dataNascimento   String?
+  whatsapp         String?
+  criadoEm    DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+}
+
+model ResetSenha {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  usado     Boolean  @default(false)
+  criadoEm  DateTime @default(now())
+}
+
 model Estrategia {
   id          String   @id @default(cuid())
   titulo      String
@@ -19,6 +48,7 @@ model Estrategia {
 
 model Tema {
   id           String      @id @default(cuid())
+  userId       String      @default("admin-default")
   titulo       String
   descricao    String?
   status       String      @default("IDEIA")
@@ -43,6 +73,7 @@ model Microtema {
 
 model Conteudo {
   id             String     @id @default(cuid())
+  userId         String     @default("admin-default")
   titulo         String
   descricao      String?
   roteiro        String?
@@ -84,14 +115,15 @@ model Conteudo {
   metricaCurtidas    Int?
   metricaComentarios Int?
   metricaSalvamentos Int?
-  hashtags       String?
+  hashtags           String?
+  sugestoesProducao  String?
   criadoEm       DateTime   @default(now())
   atualizadoEm   DateTime   @updatedAt
 }
 
-
 model Tendencia {
   id          String   @id @default(cuid())
+  userId      String   @default("admin-default")
   titulo      String
   descricao   String
   plataforma  String
@@ -108,6 +140,7 @@ model Tendencia {
 
 model CampanhaTrafego {
   id          String   @id @default(cuid())
+  userId      String   @default("admin-default")
   nome        String
   dataInicio  DateTime
   dataFim     DateTime
@@ -115,9 +148,11 @@ model CampanhaTrafego {
   observacoes String?
   criadoEm    DateTime @default(now())
 }
+
 model ConfigIA {
-  id              String    @id @default(cuid())
-  provedor        String    @unique
+  id              String    @id  // padrão: "${userId}_${provedor}"
+  userId          String    @default("admin-default")
+  provedor        String
   ativo           Boolean   @default(false)
   prioridade      Int       @default(1)
   modeloPrincipal String?
@@ -125,6 +160,8 @@ model ConfigIA {
   ultimoTeste     DateTime?
   statusTeste     String?
   criadoEm        DateTime  @default(now())
+
+  @@unique([userId, provedor])
 }
 
 model PersonaConfig {
@@ -145,6 +182,7 @@ model PersonaConfig {
 
 model Objecao {
   id                  String   @id @default(cuid())
+  userId              String   @default("admin-default")
   texto               String
   contexto            String?
   frequencia          String?
@@ -153,17 +191,21 @@ model Objecao {
   clienteCompraDepois String?
   respostaAtual       String?
   prioridade          Int?
-  raiz                String?
-  respostaCurta       String?
-  prevencao           String?
-  analiseCompleta     String?
+  raiz                    String?
+  respostaCurta           String?
+  prevencao               String?
+  analiseCompleta         String?
+  clienteConheciaProduto  String?
+  objetivoCliente         String?
+  crencaGerou             String?
   criadoEm            DateTime @default(now())
   atualizadoEm        DateTime @updatedAt
 }
 
+// Singletons por usuário: id = userId (admin usa id="admin-default")
 model EstudoEstrategico {
   id                  String   @id @default("default")
-  respostas           String   @default("{}") // JSON com todas as respostas dos módulos
+  respostas           String   @default("{}")
   secEmpresa          String   @default("")
   secPersona          String   @default("")
   secJornada          String   @default("")
@@ -171,8 +213,9 @@ model EstudoEstrategico {
   secPosicionamento   String   @default("")
   secMapa             String   @default("")
   secCriadora         String   @default("")
+  secComunicacao      String   @default("")
   secObjetivos        String   @default("")
-  secAnaliseCompleta  String   @default("") // Análise estratégica cruzada final
+  secAnaliseCompleta  String   @default("")
   status              String   @default("novo")
   criadoEm            DateTime @default(now())
   atualizadoEm        DateTime @updatedAt
@@ -185,8 +228,28 @@ model ConfigFramework {
   atualizadoEm DateTime @updatedAt
 }
 
+model ConfigGeral {
+  id             String   @id @default("default")
+  nomeNegocio    String   @default("")
+  instagram      String   @default("")
+  metaPublicados Int      @default(0)
+  metaSeguidores Int      @default(0)
+  metaReceita    Int      @default(0)
+  criadoEm       DateTime @default(now())
+  atualizadoEm   DateTime @updatedAt
+}
+
+model MembroEquipe {
+  id       String   @id @default(cuid())
+  userId   String
+  nome     String
+  cor      String   @default("#6B7280")
+  criadoEm DateTime @default(now())
+}
+
 model LogIA {
   id             String   @id @default(cuid())
+  userId         String   @default("admin-default")
   requestId      String   @unique @default(cuid())
   funcionalidade String
   provedor       String

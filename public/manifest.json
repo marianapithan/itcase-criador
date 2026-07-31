@@ -1,22 +1,24 @@
 {
-  "name": "It Case · Studio de Conteúdo",
-  "short_name": "It Case",
-  "description": "Studio de Conteúdo da It Case",
+  "name": "Cria Para Mim · Studio de Conteúdo",
+  "short_name": "Cria Para Mim",
+  "description": "Studio de Conteúdo inteligente com IA",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#111111",
+  "background_color": "#0d2b1e",
+  "theme_color": "#0d2b1e",
   "orientation": "portrait",
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

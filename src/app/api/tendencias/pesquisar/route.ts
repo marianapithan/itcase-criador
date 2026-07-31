@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { chamarIA, contextoCerebro } from "@/lib/ai/gateway";
+import { requireAuth } from "@/lib/auth-session";
 
 type TendenciaGerada = {
   titulo: string;
@@ -61,14 +62,19 @@ function parsearTendencias(texto: string): TendenciaGerada[] {
 }
 
 export async function POST(req: NextRequest) {
+  const sessao = await requireAuth(req);
+  if (!sessao) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  const { userId } = sessao;
+
   try {
     const body = await req.json().catch(() => ({}));
     const nicho = body.nicho?.trim() || "";
     const dataAtual = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    const cerebro = await contextoCerebro(userId);
 
     const prompt = `Você é um analista estratégico de conteúdo digital para a It Case, loja Apple em Londrina-PR.
 
-${contextoCerebro()}
+${cerebro}
 ${nicho ? `\nNicho extra: ${nicho}` : ""}
 
 Data: ${dataAtual}
@@ -116,6 +122,7 @@ Retorne apenas o array JSON com 12 itens:`;
         if (!t.titulo || !t.descricao) continue;
         const criada = await prisma.tendencia.create({
           data: {
+            userId,
             titulo: String(t.titulo).slice(0, 200),
             descricao: String(t.descricao).slice(0, 1000),
             plataforma: normalizar(t.plataforma, PLATAFORMAS_VALIDAS, "GERAL"),

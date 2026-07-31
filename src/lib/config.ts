@@ -4,7 +4,10 @@
 // ============================================================
 
 export const CONFIG = {
-  // Nome do negócio (aparece na sidebar, título da página e login)
+  // Nome da plataforma SaaS (aparece no login, admin, footer)
+  plataforma: "Cria Para Mim",
+
+  // Nome do negócio/cliente ativo (aparece na sidebar, dashboard)
   nome: "It Case",
 
   // Subtítulo exibido abaixo do nome

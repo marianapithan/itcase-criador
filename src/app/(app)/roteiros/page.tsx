@@ -2,9 +2,10 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Sparkles, FileText, Plus, ChevronRight, X, Check, Clock, Trash2, CalendarPlus, ChevronDown, ChevronUp, Pencil, Copy, Hash, Eye, EyeOff, Copy as CopyIcon, Calendar, CalendarX } from "lucide-react";
-import { STATUS_CONFIG, STATUS_LIST_EDITORIAL, FORMATOS_CONFIG, RESPONSAVEIS, getResponsavelConfig } from "@/lib/constants";
+import { STATUS_CONFIG, STATUS_LIST_EDITORIAL, FORMATOS_CONFIG, MembroEquipe, getMembroConfig } from "@/lib/constants";
 import { StatusBadge } from "@/components/StatusBadge";
 import { CONFIG } from "@/lib/config";
+import { FRAMEWORKS as LIB_FRAMEWORKS, FRAMEWORK_ORDER } from "@/lib/frameworks";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -22,13 +23,14 @@ type Conteudo = {
   responsavel?: string;
   dataplanejada?: string;
   hashtags?: string;
+  sugestoesProducao?: string;
   criadoEm: string;
 };
 type Tema = { id: string; titulo: string };
 
 const FORMATOS = Object.entries(FORMATOS_CONFIG).map(([value, cfg]) => ({ value, label: cfg.label }));
 
-const STATUS_LIST = [...STATUS_LIST_EDITORIAL, "GERADO_IA", "ROTEIRO_PRONTO", "REVISAR_MAIS_TARDE", "DESCARTADO"] as string[];
+const STATUS_LIST = [...STATUS_LIST_EDITORIAL, "GERADO_IA", "REVISAR_MAIS_TARDE", "DESCARTADO"] as string[];
 
 const ETAPAS = [
   { value: "TOPO",  label: "Topo",  desc: "Alcance" },
@@ -36,80 +38,23 @@ const ETAPAS = [
   { value: "FUNDO", label: "Fundo", desc: "Conversão" },
 ];
 
-type Framework = { id: string; emoji: string; nome: string; categoria: string; descricao: string; prompt: string; etapas: string[]; quando: string };
+const FRAMEWORK_DISPLAY: Record<string, { emoji: string; categoria: string }> = {
+  AIDA:          { emoji: "🎯", categoria: "Frameworks" },
+  PAS:           { emoji: "⚡", categoria: "Frameworks" },
+  BAB:           { emoji: "🔄", categoria: "Frameworks" },
+  PASTOR:        { emoji: "🌿", categoria: "Frameworks" },
+  QUEST:         { emoji: "🔑", categoria: "Frameworks" },
+  "4PS":         { emoji: "🧩", categoria: "Frameworks" },
+  SLAP:          { emoji: "👋", categoria: "Frameworks" },
+  PARABOLA:      { emoji: "📖", categoria: "Narrativos" },
+  "18GANCHOS":   { emoji: "🪝", categoria: "Ganchos" },
+  GANCHOS_VIDEO: { emoji: "🎬", categoria: "Ganchos" },
+};
 
-const FRAMEWORKS: Framework[] = [
-  {
-    id: "aida", emoji: "🎯", nome: "AIDA", categoria: "Frameworks",
-    etapas: ["Atenção", "Interesse", "Desejo", "Ação"],
-    quando: "Lançamentos, anúncios, legendas, e-mails de venda, Reels de conversão e qualquer peça cujo objetivo seja levar à ação.",
-    descricao: "O framework clássico da persuasão. Captura atenção, constrói interesse, acende desejo e conduz à ação.",
-    prompt: "Use o framework AIDA (Atenção → Interesse → Desejo → Ação). Comece com 3 opções de gancho (Atenção). Depois desenvolva cada seção completa: I (Interesse), D (Desejo), A (Ação/CTA). Ao final, entregue uma versão compacta do roteiro inteiro.",
-  },
-  {
-    id: "pas", emoji: "⚡", nome: "PAS", categoria: "Frameworks",
-    etapas: ["Problema", "Agitação", "Solução"],
-    quando: "Conteúdo de conscientização, posts de engajamento, anúncios de produto, Stories e Reels que trabalham dor e solução.",
-    descricao: "Identifica o problema, amplifica a dor até o ponto de urgência e apresenta a solução como alívio natural.",
-    prompt: "Use o framework PAS (Problema → Agitação → Solução). Comece com 3 opções de gancho. Depois escreva P completo (descreva o problema em detalhes), A completo (agite a dor, torne-a urgente e real), S completo (apresente a solução com CTA). Ao final, entregue uma versão compacta.",
-  },
-  {
-    id: "bab", emoji: "🔄", nome: "BAB", categoria: "Frameworks",
-    etapas: ["Before", "After", "Bridge"],
-    quando: "Depoimentos, posts de transformação, anúncios de resultado, conteúdo para fundo de funil, histórias de antes e depois.",
-    descricao: "Cria contraste poderoso entre situação atual e estado desejado, posicionando o produto como a ponte.",
-    prompt: "Use o framework BAB (Before → After → Bridge). Before: descreva a situação atual com detalhes sensoriais e emocionais. After: pinte o cenário ideal de forma vívida. Bridge: mostre como a It Case é a ponte entre os dois estados, com CTA claro. Ao final, inclua uma versão curta em formato depoimento de cliente.",
-  },
-  {
-    id: "pastor", emoji: "🌿", nome: "PASTOR", categoria: "Frameworks",
-    etapas: ["Problema", "Amplificação", "História", "Transformação", "Oferta", "Resposta"],
-    quando: "Páginas de venda, e-mails longos, vídeos de vendas, lives de lançamento, scripts comerciais e qualquer peça que exija persuasão completa.",
-    descricao: "Framework de seis etapas que combina storytelling, prova social e apresentação de oferta.",
-    prompt: "Use o framework PASTOR: P (Problema), A (Amplificação), S (Solução/História), T (Transformação), O (Oferta), R (Resposta/CTA). Desenvolva cada bloco.",
-  },
-  {
-    id: "quest", emoji: "🔑", nome: "QUEST", categoria: "Frameworks",
-    etapas: ["Qualificar", "Entender", "Educar", "Estimular", "Transição"],
-    quando: "Conteúdo educativo de médio funil, sequências de e-mail, vídeos explicativos, carrosséis de educação e conteúdo de autoridade.",
-    descricao: "Qualifica a audiência certa, educa estrategicamente, estimula o desejo e conduz à transição natural.",
-    prompt: "Use o framework QUEST: Q (Qualify), U (Understand), E (Educate), S (Stimulate), T (Transition). Desenvolva cada etapa.",
-  },
-  {
-    id: "4ps", emoji: "🧩", nome: "4 Ps", categoria: "Frameworks",
-    etapas: ["Promessa", "Imagem", "Prova", "Empurrar"],
-    quando: "Anúncios diretos, headlines de páginas, e-mails de oferta, stories de venda e qualquer peça que precise de alta conversão em pouco espaço.",
-    descricao: "Faz uma promessa específica, cria imagem mental do resultado, prova com evidências e empurra para a ação.",
-    prompt: "Use os 4 Ps: P (Picture: crie uma imagem mental vívida), P (Promise: faça uma promessa clara), P (Prove: apresente prova), P (Push: empurrão final com urgência e CTA).",
-  },
-  {
-    id: "slap", emoji: "👋", nome: "SLAP", categoria: "Frameworks",
-    etapas: ["Parar", "Olhar", "Agir", "Comprar"],
-    quando: "Anúncios em feed, stories patrocinados, conteúdo de topo de funil para audiência fria, posts de alto alcance em redes sociais.",
-    descricao: "Projetado para ambientes de alta distração. Para a rolagem, prende o olhar e direciona para a compra.",
-    prompt: "Use o framework SLAP: S (Stop), L (Look), A (Act), P (Purchase). Peça curta, sem enrolação, texto de impacto.",
-  },
-  {
-    id: "parabola", emoji: "📖", nome: "Parábola", categoria: "Narrativos",
-    etapas: ["Situação", "Conflito", "Virada", "Resolução", "Moral"],
-    quando: "Conteúdo de branding, construção de autoridade, posts de valores e propósito, Reels de storytelling, e-mails de relacionamento.",
-    descricao: "Usa storytelling estruturado para criar conexão emocional profunda e comunicar valores de forma inesquecível.",
-    prompt: "Use o framework PARÁBOLA: gancho que prende, história real ou verossímil (com cena, diálogo e detalhe sensorial), lição, conexão com a solução da It Case, CTA. Inclua versão curta para stories.",
-  },
-  {
-    id: "18-ganchos", emoji: "🪝", nome: "18 Ganchos", categoria: "Ganchos",
-    etapas: ["Análise", "Seleção", "Execução", "Desenvolvimento", "CTA"],
-    quando: "Qualquer conteúdo que precise de uma abertura excepcional: posts, Reels, e-mails, carrosséis, anúncios e scripts.",
-    descricao: "Biblioteca com 18 tipos de ganchos de alta performance. A IA seleciona o gancho mais adequado para o objetivo.",
-    prompt: "Gere 18 ganchos numerados, organizados em 6 grupos de 3: (1) DOR/PROBLEMA, (2) TRANSFORMAÇÃO, (3) CURIOSIDADE, (4) URGÊNCIA, (5) AUTORIDADE, (6) COMBINADOS. Total: 18 ganchos numerados.",
-  },
-  {
-    id: "ganchos-video", emoji: "🎬", nome: "Ganchos de Vídeo", categoria: "Ganchos",
-    etapas: ["Gancho Visual", "Promessa Verbal", "Desenvolvimento", "Loop", "CTA"],
-    quando: "Roteiros de Reels, TikToks, YouTube Shorts, vídeos de Stories e qualquer conteúdo audiovisual onde os primeiros 3 segundos são determinantes.",
-    descricao: "Framework especializado em ganchos audiovisuais. Combina gancho visual, gancho verbal e estrutura de retenção.",
-    prompt: "Gere 10 ganchos para os primeiros 3 segundos de vídeo curto (Reels/TikTok). Para cada gancho: (a) FALA: o que dizer em voz, (b) VISUAL: o que aparece na tela. Formato numerado de 1 a 10.",
-  },
-];
+const FRAMEWORKS = FRAMEWORK_ORDER.map((id) => ({
+  ...LIB_FRAMEWORKS[id],
+  ...FRAMEWORK_DISPLAY[id],
+}));
 
 const CATEGORIA_COR: Record<string, string> = {
   "Frameworks": "text-blue-600",
@@ -178,7 +123,7 @@ function RoteirosPageInner() {
   const [legendaTemp, setLegendaTemp] = useState("");
   const [instrucaoMelhoria, setInstrucaoMelhoria] = useState("");
   const [mostrarVersaoAnterior, setMostrarVersaoAnterior] = useState(false);
-  const [form, setForm] = useState({ titulo: "", formato: "REELS", temaId: "", instrucao: "", framework: "" });
+  const [form, setForm] = useState({ titulo: "", formato: "REELS", temaId: "", instrucao: "", framework: "", microtemaId: "" });
   const [modoNovo, setModoNovo] = useState<"unico" | "lote">("unico");
   const [loteForm, setLoteForm] = useState({ prompt: "", quantidade: 7, temaId: "" });
   const [gerandoLote, setGerandoLote] = useState(false);
@@ -197,24 +142,45 @@ function RoteirosPageInner() {
   const [agendandoHora, setAgendandoHora] = useState(12);
   const [agendandoMinuto, setAgendandoMinuto] = useState(0);
   const [salvandoData, setSalvandoData] = useState(false);
+  const [membrosEquipe, setMembrosEquipe] = useState<MembroEquipe[]>([]);
+  const [addingMembro, setAddingMembro] = useState(false);
+  const [novoMembroNome, setNovoMembroNome] = useState("");
 
   const frameworkSelecionado = FRAMEWORKS.find((f) => f.id === form.framework);
   const podeGerar = form.titulo.trim() && form.framework;
 
   const carregar = useCallback(async () => {
-    const [c, t] = await Promise.all([
+    const [c, t, eq] = await Promise.all([
       fetch("/api/conteudos").then((r) => r.json()),
       fetch("/api/temas").then((r) => r.json()),
+      fetch("/api/equipe").then((r) => r.json()),
     ]);
     setConteudos(c);
     setTemas(t);
+    setMembrosEquipe(Array.isArray(eq) ? eq : []);
   }, []);
 
   useEffect(() => { carregar(); }, [carregar]);
 
-  // Abrir formulário novo via ?novo=1 (ex: FAB)
+  async function adicionarMembro() {
+    const nome = novoMembroNome.trim();
+    if (!nome) return;
+    const res = await fetch("/api/equipe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nome }) });
+    if (res.ok) {
+      const novo = await res.json();
+      setMembrosEquipe((prev) => [...prev, novo]);
+    }
+    setNovoMembroNome("");
+    setAddingMembro(false);
+  }
+
+  // Abrir formulário novo via ?novo=1 (ex: FAB ou microtema)
   useEffect(() => {
     if (searchParams.get("novo") === "1") {
+      const titulo = searchParams.get("titulo") ?? "";
+      const microtemaId = searchParams.get("microtemaId") ?? "";
+      const temaId = searchParams.get("temaId") ?? "";
+      setForm((f) => ({ ...f, titulo, microtemaId, temaId: temaId || f.temaId }));
       setCriandoNovo(true);
       setSelecionado(null);
       router.replace("/roteiros");
@@ -236,7 +202,7 @@ function RoteirosPageInner() {
       const res = await fetch("/api/roteiros/gerar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, frameworkNome: frameworkSelecionado?.nome, frameworkPrompt: frameworkSelecionado?.prompt }),
+        body: JSON.stringify({ ...form, frameworkNome: frameworkSelecionado?.nome }),
       });
       const data = await res.json();
       if (data.erro) { setErroLote(data.erro); return; }
@@ -244,7 +210,7 @@ function RoteirosPageInner() {
       setSelecionado(data);
       setCriandoNovo(false);
       setTelaAcao(null);
-      setForm({ titulo: "", formato: "REELS", temaId: "", instrucao: "", framework: "" });
+      setForm({ titulo: "", formato: "REELS", temaId: "", instrucao: "", framework: "", microtemaId: "" });
     } catch {
       setErroLote("Erro de conexão. Verifique sua internet e tente novamente.");
     } finally {
@@ -291,7 +257,6 @@ function RoteirosPageInner() {
           titulo: selecionado.titulo,
           formato: selecionado.formato,
           frameworkNome: fw.nome,
-          frameworkPrompt: fw.prompt,
         }),
       });
       const data = await res.json();
@@ -838,21 +803,34 @@ function RoteirosPageInner() {
                     {STATUS_LIST.map((s) => <option key={s} value={s}>{STATUS_CONFIG[s]?.label ?? s}</option>)}
                   </select>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <div className="text-xs text-gray-500 shrink-0">Responsável</div>
-                  <div className="flex gap-1">
-                    {RESPONSAVEIS.map((r) => {
+                  <div className="flex gap-1 flex-wrap items-center">
+                    {membrosEquipe.map((r) => {
                       const ativo = selecionado.responsavel === r.nome;
+                      const inicial = r.nome[0]?.toUpperCase() ?? "?";
                       return (
-                        <button key={r.nome}
+                        <button key={r.id}
                           onClick={() => salvarCampo("responsavel", ativo ? "" : r.nome)}
                           title={r.nome}
                           className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white transition-all"
                           style={{ backgroundColor: ativo ? r.cor : "#E5E7EB", color: ativo ? "white" : r.cor, border: ativo ? `2px solid ${r.cor}` : "2px solid #E5E7EB" }}>
-                          {r.inicial}
+                          {inicial}
                         </button>
                       );
                     })}
+                    {addingMembro ? (
+                      <div className="flex items-center gap-1">
+                        <input autoFocus value={novoMembroNome} onChange={(e) => setNovoMembroNome(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") adicionarMembro(); if (e.key === "Escape") { setAddingMembro(false); setNovoMembroNome(""); } }}
+                          placeholder="Nome" className="text-[11px] border border-gray-300 rounded-lg px-2 py-1 w-20 focus:outline-none" />
+                        <button onClick={adicionarMembro} className="text-[10px] bg-gray-900 text-white px-1.5 py-1 rounded">OK</button>
+                        <button onClick={() => { setAddingMembro(false); setNovoMembroNome(""); }} className="text-gray-400 text-xs">✕</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setAddingMembro(true)} title="Adicionar responsável"
+                        className="w-7 h-7 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-gray-500 transition-colors text-sm font-bold">+</button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1019,6 +997,16 @@ function RoteirosPageInner() {
               <button onClick={() => setMostrarLegenda(true)} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 mb-4">
                 <ChevronDown size={12} /> Mostrar legenda
               </button>
+            )}
+
+            {/* Sugestões de Produção */}
+            {selecionado.sugestoesProducao && (
+              <div className="mb-4">
+                <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Sugestões de Produção</p>
+                <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
+                  <p className="text-sm text-amber-900 leading-relaxed whitespace-pre-wrap">{selecionado.sugestoesProducao}</p>
+                </div>
+              </div>
             )}
 
             {/* Preview estilo Instagram */}

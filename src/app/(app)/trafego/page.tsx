@@ -1,13 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
 import {
-  Megaphone, ArrowLeft, Copy, Check, ChevronDown, ChevronUp,
+  Megaphone, ArrowLeft, ChevronDown, ChevronUp,
   Target, TrendingUp, AlertTriangle, Sparkles, Pencil, CircleCheck,
   CircleAlert, CircleX, Info, Users, ListChecks, Play, CalendarDays,
-  Zap, CheckSquare, Square,
+  Zap, CheckSquare, Square, Check,
 } from "lucide-react";
 import { FORMATOS_CONFIG, STATUS_CONFIG } from "@/lib/constants";
 import { StatusBadge } from "@/components/StatusBadge";
+import { CopyBtn } from "@/components/CopyBtn";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -123,16 +124,6 @@ function calcSaude(inv: number, dias: number, ticket: number): SaudeCampanha {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function CopyBtn({ text }: { text: string }) {
-  const [ok, setOk] = useState(false);
-  return (
-    <button onClick={async () => { await navigator.clipboard.writeText(text); setOk(true); setTimeout(() => setOk(false), 2000); }}
-      className="flex items-center gap-1 text-xs px-2 py-1 rounded border border-gray-200 text-gray-400 hover:border-gray-400 hover:text-gray-700 transition-colors shrink-0">
-      {ok ? <Check size={11} className="text-green-500" /> : <Copy size={11} />}
-      {ok ? "Copiado!" : "Copiar"}
-    </button>
-  );
-}
 
 function Campo({ label, value }: { label: string; value: string }) {
   return (

@@ -1,24 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { FRAMEWORKS, type FrameworkId } from "@/lib/frameworks";
+import { garantirMigracoes } from "@/lib/db/migracoes";
+import { requireAuth } from "@/lib/auth-session";
 
-async function garantirTabela() {
-  try {
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "ConfigFramework" (
-        "id" TEXT NOT NULL PRIMARY KEY DEFAULT 'default',
-        "ativo" TEXT NOT NULL DEFAULT 'AIDA',
-        "criadoEm" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "atualizadoEm" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-  } catch { /* tabela já existe */ }
-}
+export async function GET(req: NextRequest) {
+  const sessao = await requireAuth(req);
+  if (!sessao) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  const { userId } = sessao;
 
-export async function GET() {
-  await garantirTabela();
+  await garantirMigracoes();
   try {
-    const config = await prisma.configFramework.findUnique({ where: { id: "default" } });
+    const config = await prisma.configFramework.findUnique({ where: { id: userId } });
     return NextResponse.json({ ativo: config?.ativo ?? "AIDA" });
   } catch {
     return NextResponse.json({ ativo: "AIDA" });
@@ -26,7 +19,11 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  await garantirTabela();
+  const sessao = await requireAuth(req);
+  if (!sessao) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  const { userId } = sessao;
+
+  await garantirMigracoes();
   const { ativo } = await req.json();
 
   if (!FRAMEWORKS[ativo as FrameworkId]) {
@@ -34,9 +31,9 @@ export async function POST(req: NextRequest) {
   }
 
   const config = await prisma.configFramework.upsert({
-    where: { id: "default" },
+    where: { id: userId },
     update: { ativo },
-    create: { id: "default", ativo },
+    create: { id: userId, ativo },
   });
 
   return NextResponse.json({ ativo: config.ativo });

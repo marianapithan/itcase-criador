@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { chamarIA } from "@/lib/ai/gateway";
 import { CONFIG } from "@/lib/config";
+import { requireAuth } from "@/lib/auth-session";
 
 const DEFAULTS = {
   nomePersona: "Ana Conquista",
@@ -39,8 +40,12 @@ const DEFAULTS = {
   ],
 };
 
-export async function GET() {
-  const persona = await prisma.personaConfig.findUnique({ where: { id: "default" } });
+export async function GET(req: NextRequest) {
+  const sessao = await requireAuth(req);
+  if (!sessao) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  const { userId } = sessao;
+
+  const persona = await prisma.personaConfig.findUnique({ where: { id: userId } });
   if (!persona) return NextResponse.json({ ...DEFAULTS, sugestoesIA: null, atualizadoEm: null });
 
   return NextResponse.json({
@@ -60,6 +65,10 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const sessao = await requireAuth(req);
+  if (!sessao) return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
+  const { userId } = sessao;
+
   const body = await req.json();
   const {
     nomePersona, faixaEtaria, localizacao, perfilCompra,
@@ -97,7 +106,7 @@ Retorne SOMENTE um JSON array válido com 4 objetos: [{"titulo":"...","desc":"..
   }
 
   const persona = await prisma.personaConfig.upsert({
-    where: { id: "default" },
+    where: { id: userId },
     update: {
       nomePersona, faixaEtaria, localizacao, perfilCompra,
       desejos: JSON.stringify(desejos),
@@ -109,7 +118,7 @@ Retorne SOMENTE um JSON array válido com 4 objetos: [{"titulo":"...","desc":"..
       sugestoesIA,
     },
     create: {
-      id: "default",
+      id: userId,
       nomePersona, faixaEtaria, localizacao, perfilCompra,
       desejos: JSON.stringify(desejos),
       medos: JSON.stringify(medos),

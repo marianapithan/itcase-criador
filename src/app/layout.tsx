@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Syne } from "next/font/google";
 import "./globals.css";
 import { CONFIG } from "@/lib/config";
@@ -20,18 +20,29 @@ const syne = Syne({
   weight: ["400", "600", "700", "800"],
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  minimumScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0d2b1e",
+};
+
 export const metadata: Metadata = {
-  title: `${CONFIG.nome} · ${CONFIG.tagline}`,
-  description: "Studio de Conteúdo — It Case Londrina",
+  title: `${CONFIG.plataforma} · ${CONFIG.tagline}`,
+  description: "Studio de Conteúdo inteligente com IA",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: CONFIG.nome,
+    title: CONFIG.plataforma,
   },
   icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
 };
 

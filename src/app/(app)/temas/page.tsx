@@ -236,13 +236,21 @@ export default function TemasPage() {
                     {tema.microtemas.length > 0 && (
                       <div className="space-y-1 mb-2">
                         {tema.microtemas.map((m) => (
-                          <div key={m.id} className="flex items-center gap-2 text-sm py-1">
+                          <div key={m.id} className="flex items-center gap-2 text-sm py-1 group">
                             {m.status === "APROVADO" ? (
                               <CheckCircle size={14} className="text-green-500 shrink-0" />
                             ) : (
                               <Circle size={14} className="text-gray-300 shrink-0" />
                             )}
-                            <span className="text-gray-700">{m.titulo}</span>
+                            <span className="text-gray-700 flex-1 line-clamp-1">{m.titulo}</span>
+                            <button
+                              onClick={() => router.push(`/roteiros?novo=1&titulo=${encodeURIComponent(m.titulo)}&microtemaId=${m.id}&temaId=${tema.id}`)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] text-indigo-600 hover:text-indigo-800 shrink-0"
+                              title="Criar roteiro a partir deste microtema"
+                            >
+                              <ArrowRight size={11} />
+                              roteiro
+                            </button>
                           </div>
                         ))}
                       </div>

@@ -1,13 +1,17 @@
 export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/db/client";
+import { garantirMigracoes } from "@/lib/db/migracoes";
+import { getConfigGeral } from "@/lib/db/config-geral";
 import { Lightbulb, BookOpen, CalendarDays, Video, Smartphone, FileImage, AlertCircle, CheckCircle2, Clock, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { STATUS_CONFIG, FORMATOS_CONFIG } from "@/lib/constants";
 import { StatusBadge } from "@/components/StatusBadge";
-import { CONFIG } from "@/lib/config";
 import { format, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { cookies } from "next/headers";
+import { verificarSessao, COOKIE } from "@/lib/session";
+import { MetaEditor } from "@/components/MetaEditor";
 
 const FRASES_MOT = [
   "Seu conteúdo de hoje pode ser sua venda de amanhã.",
@@ -15,15 +19,44 @@ const FRASES_MOT = [
   "O algoritmo ama quem aparece. Apareça!",
   "Não desista de criar. Desista de perfeição.",
   "Uma legenda por dia mantece o cliente por perto.",
-  "Feito é melhor que perfeito. Pergunta pra qualquer iPhone seminovo.",
+  "Seu algoritmo agradece.",
   "Você não cria conteúdo por acaso. Você cria por estratégia.",
   "Quem conta sua história não precisa que o concorrente conte a dele.",
+  "Conteúdo bom não é o mais elaborado. É o mais verdadeiro.",
+  "Poste hoje. Ajuste amanhã. Pare de esperar o dia perfeito.",
+  "Cada post é uma conversa que começa antes da venda.",
+  "Quem aparece toda semana é quem o cliente lembra na hora de comprar.",
+  "Criatividade com consistência é a fórmula que o algoritmo não sabe imitar.",
+  "Roteiro salvo é conteúdo a meio caminho.",
+  "Três Reels por semana valem mais que um viral por mês.",
+  "A câmera não precisa estar perfeita. A mensagem precisa ser honesta.",
+  "Você já ajudou alguém hoje só pelo que publicou. Continue.",
+  "Calendário cheio é sossego mental. Planeje para executar em paz.",
+  "Seu concorrente espera que você desista hoje.",
+  "Conteúdo é o vendedor que trabalha enquanto você dorme.",
+  "Uma boa legenda começa antes da câmera ligar.",
+  "Não existe conteúdo pequeno quando a mensagem é grande.",
+  "Quem educa a audiência hoje, vende sem esforço amanhã.",
+  "Conteúdo parado não gera venda. Publique.",
+  "Stories todos os dias é o café da manhã do algoritmo.",
+  "Cada peça de conteúdo plantada é uma semente de relacionamento.",
+  "Uma ideia publicada vale mais do que dez ideias guardadas.",
+  "Uma semana de posts consistentes muda a percepção de marca.",
+  "O melhor conteúdo é o que sai. Não o que fica perfeito na cabeça.",
+  "Autoridade se constrói post a post, não num só dia.",
+  "O conteúdo de hoje abre a porta que o anúncio de amanhã vai fechar.",
 ];
 
-const { publicados: META_PUBLICADOS_90D } = CONFIG.metas;
-const META_MES = Math.ceil(META_PUBLICADOS_90D / 3);
 
 export default async function Dashboard() {
+  await garantirMigracoes();
+  const cookieStore = await cookies();
+  const token = cookieStore.get(COOKIE)?.value;
+  const sessao = token ? await verificarSessao(token) : null;
+  const userId = sessao?.userId ?? "admin-default";
+  const configGeral = await getConfigGeral(userId);
+  const nomeNegocio = configGeral.nomeNegocio;
+  const META_MES = configGeral.metaPublicados > 0 ? configGeral.metaPublicados : 0;
   const hoje = new Date();
   const inicioDia = new Date(hoje); inicioDia.setHours(0, 0, 0, 0);
   const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
@@ -35,19 +68,21 @@ export default async function Dashboard() {
   );
   const saudacao = horaLocal < 12 ? "Bom dia" : horaLocal < 18 ? "Boa tarde" : "Boa noite";
 
-  const [proximosNaoGravados, publicadosMes, proximosConteudos, publicadosPorDia] = await Promise.all([
+  const [proximosNaoGravados, publicadosMes, proximosConteudos, publicadosPorDia, recentes] = await Promise.all([
     prisma.conteudo.count({
       where: {
+        userId,
         dataplanejada: { gte: hoje, lte: new Date(hoje.getTime() + 2 * 24 * 60 * 60 * 1000) },
         gravado: false,
         status: { in: ["AGENDADO", "APROVADO", "ROTEIRO_PRONTO"] },
       },
     }),
     prisma.conteudo.count({
-      where: { status: "PUBLICADO", dataplanejada: { gte: inicioMes, lte: fimMes } },
+      where: { userId, status: "PUBLICADO", dataplanejada: { gte: inicioMes, lte: fimMes } },
     }),
     prisma.conteudo.findMany({
       where: {
+        userId,
         dataplanejada: { gte: inicioDia, lte: em7dias },
         status: { notIn: ["DESCARTADO", "PUBLICADO"] },
       },
@@ -55,16 +90,16 @@ export default async function Dashboard() {
       take: 6,
     }),
     prisma.conteudo.findMany({
-      where: { status: "PUBLICADO", dataplanejada: { gte: inicioMes, lte: fimMes } },
+      where: { userId, status: "PUBLICADO", dataplanejada: { gte: inicioMes, lte: fimMes } },
       select: { dataplanejada: true },
     }),
+    prisma.conteudo.findMany({
+      where: { userId },
+      take: 5,
+      orderBy: { criadoEm: "desc" },
+      include: { tema: { select: { titulo: true } } },
+    }),
   ]);
-
-  const recentes = await prisma.conteudo.findMany({
-    take: 5,
-    orderBy: { criadoEm: "desc" },
-    include: { tema: { select: { titulo: true } } },
-  });
 
 
   const progMes = META_MES > 0 ? Math.min(100, (publicadosMes / META_MES) * 100) : 0;
@@ -100,7 +135,7 @@ export default async function Dashboard() {
             className="text-2xl md:text-3xl font-bold gradient-text-brand"
             style={{ fontFamily: "var(--font-syne, inherit)", letterSpacing: "-0.01em" }}
           >
-            {saudacao}, {CONFIG.nome}!
+            {saudacao}{nomeNegocio ? `, ${nomeNegocio}` : ""}!
           </h1>
           <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>Aqui está o resumo do seu estúdio.</p>
         </div>
@@ -121,18 +156,18 @@ export default async function Dashboard() {
         <p className="section-label-purple mb-3">O que vamos criar hoje?</p>
         <div className="grid grid-cols-3 gap-3">
           {[
-            { href: "/roteiros?novo=1", label: "Reels",  sub: "Vídeo curto vertical",  icon: Video,      cor: "#f06080", corBg: "rgba(240,96,128,0.12)" },
-            { href: "/roteiros?novo=1", label: "Story",  sub: "Conteúdo de 24 horas",  icon: Smartphone, cor: "#9b8fd4", corBg: "rgba(155,143,212,0.12)" },
-            { href: "/roteiros?novo=1", label: "Post",   sub: "Imagem ou carrossel",    icon: FileImage,  cor: "#c8d92a", corBg: "rgba(200,217,42,0.12)" },
-          ].map(({ href, label, sub, icon: Icon, cor, corBg }) => (
+            { href: "/roteiros?novo=1", label: "Reels",  sub: "Vídeo curto vertical",  icon: Video,      cor: "#f06080" },
+            { href: "/roteiros?novo=1", label: "Story",  sub: "Conteúdo de 24 horas",  icon: Smartphone, cor: "#9b8fd4" },
+            { href: "/roteiros?novo=1", label: "Post",   sub: "Imagem ou carrossel",    icon: FileImage,  cor: "#c8d92a" },
+          ].map(({ href, label, sub, icon: Icon, cor }) => (
             <Link
               key={label}
               href={href}
               className="card-interactive flex flex-col items-center gap-2 p-4 md:p-5 rounded-xl text-center relative overflow-hidden"
-              style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}
+              style={{ background: "linear-gradient(135deg, rgba(139,116,200,0.13) 0%, rgba(155,143,212,0.06) 100%)", border: "1px solid rgba(155,143,212,0.2)" }}
             >
               <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-xl" style={{ background: cor }} />
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: corBg }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${cor}22` }}>
                 <Icon size={19} style={{ color: cor }} />
               </div>
               <div>
@@ -198,74 +233,16 @@ export default async function Dashboard() {
         </div>
 
         {/* Progresso do mês */}
-        <div className="rounded-xl overflow-hidden" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
-          <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--card-border)" }}>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 size={13} style={{ color: "var(--muted)" }} />
-              <span className="section-label">Publicados em {nomeMesCapitalizado}</span>
-            </div>
-            <Link href="/biblioteca" className="text-[11px] flex items-center gap-1 transition-colors" style={{ color: "var(--muted)" }}>
-              Ver biblioteca <ArrowRight size={10} />
-            </Link>
-          </div>
-          <div className="p-5">
-            <div className="flex items-end gap-2 mb-3">
-              <span
-                className="text-4xl font-bold"
-                style={{ color: "var(--foreground)", fontFamily: "var(--font-syne, inherit)" }}
-              >
-                {publicadosMes}
-              </span>
-              {META_MES > 0 && (
-                <span className="text-sm mb-1" style={{ color: "var(--muted)" }}>/ {META_MES} meta</span>
-              )}
-              {META_MES > 0 && (
-                <span
-                  className="text-sm font-bold mb-1 ml-auto"
-                  style={{ color: progMes >= 100 ? "#c8d92a" : progMes >= 60 ? "#9b8fd4" : "#fbbf24" }}
-                >
-                  {Math.round(progMes)}%
-                </span>
-              )}
-            </div>
-            {META_MES > 0 && (
-              <>
-                {acumulado.some((v) => v > 0) && (
-                  <div className="mb-3">
-                    <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-10" preserveAspectRatio="none">
-                      <polyline
-                        points={sparkPoints}
-                        fill="none"
-                        stroke={progMes >= 100 ? "#c8d92a" : progMes >= 60 ? "#9b8fd4" : "#fbbf24"}
-                        strokeWidth="2"
-                        strokeLinejoin="round"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </div>
-                )}
-                <div className="w-full rounded-full h-2 mb-3" style={{ background: "var(--accent)" }}>
-                  <div
-                    className="h-2 rounded-full transition-all"
-                    style={{
-                      width: `${progMes}%`,
-                      background: progMes >= 100 ? "#c8d92a" : progMes >= 60 ? "#9b8fd4" : "#fbbf24",
-                    }}
-                  />
-                </div>
-                <p className="text-xs mb-2" style={{ color: "var(--muted)" }}>
-                  {progMes >= 100
-                    ? "Meta do mês atingida! 🎉 Hora de comemorar!"
-                    : `${META_MES - publicadosMes} publicaç${META_MES - publicadosMes !== 1 ? "ões" : "ão"} para a meta`}
-                </p>
-                <p className="text-[11px] italic" style={{ color: "var(--muted)" }}>{fraseMot}</p>
-              </>
-            )}
-            {META_MES === 0 && (
-              <p className="text-xs" style={{ color: "var(--muted)" }}>Configure a meta em <code className="text-[11px] px-1 rounded" style={{ background: "var(--accent)" }}>config.ts</code></p>
-            )}
-          </div>
-        </div>
+        <MetaEditor
+          metaMes={META_MES}
+          publicadosMes={publicadosMes}
+          nomeMes={nomeMesCapitalizado}
+          fraseMot={fraseMot}
+          sparkPoints={sparkPoints}
+          svgW={svgW}
+          svgH={svgH}
+          acumulado={acumulado}
+        />
       </div>
 
       {/* Ações rápidas */}
@@ -274,17 +251,17 @@ export default async function Dashboard() {
       </div>
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
-          { href: "/temas",     label: "Novo tema",   icon: Lightbulb,    cor: "#c8d92a" },
+          { href: "/temas",     label: "Novo tema",    icon: Lightbulb,    cor: "#c8d92a" },
           { href: "/roteiros",  label: "Novo roteiro", icon: BookOpen,     cor: "#9b8fd4" },
-          { href: "/calendario",label: "Calendário",   icon: CalendarDays, cor: "#f06080" },
+          { href: "/calendario",label: "Calendário",   icon: CalendarDays, cor: "#8B74C8" },
         ].map(({ href, label, icon: Icon, cor }) => (
           <Link
             key={href}
             href={href}
             className="card-interactive flex flex-col items-center gap-2 p-3 md:p-4 rounded-xl text-center"
-            style={{ background: "var(--card-bg)", border: `1px dashed var(--card-border)` }}
+            style={{ background: "linear-gradient(135deg, rgba(139,116,200,0.10) 0%, rgba(155,143,212,0.04) 100%)", border: "1px dashed rgba(155,143,212,0.25)" }}
           >
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${cor}18` }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${cor}22` }}>
               <Icon size={17} style={{ color: cor }} />
             </div>
             <span className="text-xs font-medium" style={{ color: "var(--muted)" }}>{label}</span>

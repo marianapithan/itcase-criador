@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, Mail, Lock, Loader2 } from "lucide-react";
 import { CONFIG } from "@/lib/config";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -53,7 +54,7 @@ export default function LoginPage() {
             className="text-2xl font-bold leading-tight"
             style={{ color: "#e4f0de", fontFamily: "var(--font-syne, inherit)" }}
           >
-            {CONFIG.nome}
+            {CONFIG.plataforma}
           </h1>
           <p className="text-sm mt-1" style={{ color: "#6a9a78" }}>{CONFIG.tagline}</p>
         </div>
@@ -138,16 +139,29 @@ export default function LoginPage() {
               {carregando ? <Loader2 size={15} className="animate-spin" /> : null}
               {carregando ? "Entrando…" : "Entrar no estúdio"}
             </button>
+
+            <div className="text-center">
+              <Link href="/esqueci-senha" className="text-xs transition-colors" style={{ color: "#4a7055" }}
+                onMouseEnter={e => (e.currentTarget.style.color = "#6a9a78")}
+                onMouseLeave={e => (e.currentTarget.style.color = "#4a7055")}>
+                Esqueci minha senha
+              </Link>
+            </div>
           </form>
         </div>
 
+        <p className="text-center text-xs mt-5" style={{ color: "#4a7055" }}>
+          Não tem conta?{" "}
+          <Link href="/cadastro" className="underline" style={{ color: "#6a9a78" }}>Criar conta gratuita</Link>
+        </p>
+
         <p className="text-center text-[11px] mt-6" style={{ color: "#4a7055" }}>
-          Acesso restrito ao time {CONFIG.nome}.
+          Acesso restrito — plataforma {CONFIG.plataforma}.
         </p>
         <p className="text-center text-[10px] mt-1" style={{ color: "#2d5a3d" }}>
           powered by{" "}
           <span className="font-semibold" style={{ color: "#4a7055" }}>
-            cr<span style={{ color: "#c8d92a" }}>IA</span>dor
+            {CONFIG.plataforma}
           </span>
         </p>
       </div>

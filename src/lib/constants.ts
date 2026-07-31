@@ -16,15 +16,12 @@ export const STATUS_LIST_EDITORIAL = [
   "IDEIA", "APROVADO", "ROTEIRO_PRONTO", "EM_EDICAO", "PRONTO_PUBLICAR", "AGENDADO", "PUBLICADO",
 ] as const;
 
-export const RESPONSAVEIS = [
-  { nome: "Mari",   cor: "#EF4444", bg: "#FEE2E2", inicial: "M" },
-  { nome: "Nicolli", cor: "#8B5CF6", bg: "#EDE9FE", inicial: "N" },
-  { nome: "Gabi",   cor: "#10B981", bg: "#D1FAE5", inicial: "G" },
-  { nome: "José",   cor: "#3B82F6", bg: "#DBEAFE", inicial: "J" },
-] as const;
+export type MembroEquipe = { id: string; nome: string; cor: string };
 
-export function getResponsavelConfig(nome: string) {
-  return RESPONSAVEIS.find((r) => r.nome === nome) ?? null;
+export function getMembroConfig(nome: string, membros: MembroEquipe[]) {
+  const m = membros.find((r) => r.nome === nome);
+  if (!m) return null;
+  return { nome: m.nome, cor: m.cor, bg: m.cor + "22", inicial: m.nome[0]?.toUpperCase() ?? "?" };
 }
 
 export const FORMATOS_CONFIG: Record<string, { label: string; bg: string; border: string; text: string; dot: string }> = {

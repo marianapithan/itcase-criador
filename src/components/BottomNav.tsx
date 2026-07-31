@@ -24,7 +24,7 @@ function getCookie(name: string): string {
   return match ? decodeURIComponent(match[1]) : "";
 }
 
-export function BottomNav() {
+export function BottomNav({ nomeNegocio = "" }: { nomeNegocio?: string }) {
   const path = usePathname();
   const router = useRouter();
   const [menuAberto, setMenuAberto] = useState(false);
@@ -50,7 +50,7 @@ export function BottomNav() {
                 <Sparkles size={14} style={{ color: "#0d2b1e" }} />
               </div>
               <div>
-                <div className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{CONFIG.nome}</div>
+                <div className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{nomeNegocio || "Meu Estúdio"}</div>
                 <div className="text-xs" style={{ color: "var(--muted)" }}>{getCookie("itcase_user")}</div>
               </div>
             </div>
